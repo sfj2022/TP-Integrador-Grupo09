@@ -53,17 +53,20 @@ CREATE TABLE Datos.Membresia (
 GO
 
 CREATE TABLE Facturacion.Factura (
-    ID_Factura INT IDENTITY(1,1) PRIMARY KEY,
+    ID_Factura INT IDENTITY(1,1),
     CUIT CHAR(11) NOT NULL,
-    FechaHora DATETIME DEFAULT GETDATE(),
+    FechaHora DATETIME NOT NULL DEFAULT GETDATE(),
     Nombre NVARCHAR(100),
     Apellido NVARCHAR(100),
     Domicilio NVARCHAR(200),
     CostoTotal DECIMAL(10,2) NOT NULL,
     Vencimiento1 DATE,
     Vencimiento2 DATE,
-    Estado NVARCHAR(20) DEFAULT 'Activa'
+    Estado NVARCHAR(20) DEFAULT 'Activa',
+    FechaPagoAutomatico DATE,
+    CONSTRAINT PK_Factura PRIMARY KEY (ID_Factura, CUIT, FechaHora)
 );
+
 GO
 
 CREATE TABLE Datos.MedioDePago (
@@ -94,11 +97,20 @@ CREATE TABLE Datos.Usuario (
     Estado NVARCHAR(50),
     CaducidadContrasenia DATE,
     IDCuotasPagas INT,
+    Saldo DECIMAL(10,2) DEFAULT 0,
     PRIMARY KEY (DNI, ID_rol, Usuario),
     FOREIGN KEY (DNI) REFERENCES Datos.Socio(DNI)
 );
 
-
+CREATE TABLE Datos.Cobro (
+    ID_Factura INT NOT NULL,
+    CUIT CHAR(11) NOT NULL,
+    FechaHora DATETIME NOT NULL,
+    Costo DECIMAL(10, 2) NOT NULL,
+    PRIMARY KEY (ID_Factura, CUIT, FechaHora),
+    FOREIGN KEY (ID_Factura, CUIT, FechaHora) 
+        REFERENCES Facturacion.Factura(ID_Factura, CUIT, FechaHora)
+);
 
 -- Procedimientos para SOCIO
 CREATE PROCEDURE Operaciones.InsertarSocio 
@@ -245,14 +257,15 @@ CREATE PROCEDURE Facturacion.InsertarFactura
     @Domicilio NVARCHAR(200),
     @CostoTotal DECIMAL(10,2),
     @Vencimiento1 DATE = NULL,
-    @Vencimiento2 DATE = NULL
+    @Vencimiento2 DATE = NULL,
+    @FechaPagoAutomatico DATE = NULL
 AS
 BEGIN
     INSERT INTO Facturacion.Factura (
-        CUIT, Nombre, Apellido, Domicilio, CostoTotal, Vencimiento1, Vencimiento2
+        CUIT, Nombre, Apellido, Domicilio, CostoTotal, Vencimiento1, Vencimiento2, FechaPagoAutomatico
     )
     VALUES (
-        @CUIT, @Nombre, @Apellido, @Domicilio, @CostoTotal, @Vencimiento1, @Vencimiento2
+        @CUIT, @Nombre, @Apellido, @Domicilio, @CostoTotal, @Vencimiento1, @Vencimiento2, @FechaPagoAutomatico
     );
 END;
 GO
@@ -260,37 +273,43 @@ GO
 CREATE PROCEDURE Facturacion.ActualizarFactura
     @ID_Factura INT,
     @CUIT CHAR(11),
+    @FechaHora DATETIME,
     @Nombre NVARCHAR(100),
     @Apellido NVARCHAR(100),
     @Domicilio NVARCHAR(200),
     @CostoTotal DECIMAL(10,2),
     @Vencimiento1 DATE = NULL,
-    @Vencimiento2 DATE = NULL
+    @Vencimiento2 DATE = NULL,
+    @FechaPagoAutomatico DATE = NULL
 AS
 BEGIN
     UPDATE Facturacion.Factura
     SET
-        CUIT = @CUIT,
         Nombre = @Nombre,
         Apellido = @Apellido,
         Domicilio = @Domicilio,
         CostoTotal = @CostoTotal,
         Vencimiento1 = @Vencimiento1,
-        Vencimiento2 = @Vencimiento2
-    WHERE ID_Factura = @ID_Factura;
+        Vencimiento2 = @Vencimiento2,
+        FechaPagoAutomatico = @FechaPagoAutomatico
+    WHERE ID_Factura = @ID_Factura AND CUIT = @CUIT AND FechaHora = @FechaHora;
 END;
 GO
 
 -- Factura no se elimina, se marca con estado "Anulada"
 
 CREATE PROCEDURE Facturacion.AnularFactura
-    @ID_Factura INT
+    @ID_Factura INT,
+    @CUIT CHAR(11),
+    @FechaHora DATETIME
 AS
 BEGIN
     UPDATE Facturacion.Factura
     SET Estado = 'Anulada'
-    WHERE ID_Factura = @ID_Factura;
+    WHERE ID_Factura = @ID_Factura AND CUIT = @CUIT AND FechaHora = @FechaHora;
 END;
+GO
+
 GO
 -- Procedimientos para USUARIO
 
@@ -345,5 +364,36 @@ AS
 BEGIN
     DELETE FROM Datos.Usuario
     WHERE DNI = @DNI AND ID_rol = @ID_rol AND Usuario = @Usuario;
+END;
+GO
+
+-- Procedimientos para COBRO 
+
+-- Insertar un Cobro 
+
+CREATE PROCEDURE Operaciones.InsertarCobro
+    @ID_Factura INT,
+    @CUIT CHAR(11),
+    @FechaHora DATETIME,
+    @Costo DECIMAL(10, 2)
+AS
+BEGIN
+    INSERT INTO Datos.Cobro (ID_Factura, CUIT, FechaHora, Costo)
+    VALUES (@ID_Factura, @CUIT, @FechaHora, @Costo);
+END;
+GO
+
+-- Actualizar Cobro 
+
+CREATE PROCEDURE Operaciones.ActualizarCobro
+    @ID_Factura INT,
+    @CUIT CHAR(11),
+    @FechaHora DATETIME,
+    @NuevoCosto DECIMAL(10, 2)
+AS
+BEGIN
+    UPDATE Datos.Cobro
+    SET Costo = @NuevoCosto
+    WHERE ID_Factura = @ID_Factura AND CUIT = @CUIT AND FechaHora = @FechaHora;
 END;
 GO
