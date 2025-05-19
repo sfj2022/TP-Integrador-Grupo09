@@ -23,6 +23,7 @@ CREATE TABLE Datos.Socio (
     ObraSocial NVARCHAR(100),
     NumObraSocial NVARCHAR(50),
     TelObraSocial VARCHAR(20),
+	Descuento DECIMAL(5,2) DEFAULT 0,
     Activo BIT DEFAULT 1
 );
 
@@ -85,6 +86,14 @@ CREATE TABLE Facturacion.FacturaDetalleActividad (
     FOREIGN KEY (ActividadID) REFERENCES Datos.ActividadDeportiva(ID_Actividad)
 );
 
+CREATE TABLE Datos.Usuario (
+    NomUsuario NVARCHAR(50) PRIMARY KEY,
+    Contrasenia NVARCHAR(100) NOT NULL,
+    DNI INT NOT NULL UNIQUE,
+    FOREIGN KEY (DNI) REFERENCES Datos.Socio(DNI)
+);
+GO
+
 -- Procedimientos para SOCIO
 CREATE PROCEDURE Operaciones.InsertarSocio 
     @DNI INT,
@@ -97,16 +106,17 @@ CREATE PROCEDURE Operaciones.InsertarSocio
     @TelefonoEmergencia VARCHAR(20),
     @ObraSocial NVARCHAR(100) = NULL,
     @NumObraSocial NVARCHAR(50) = NULL,
-    @TelObraSocial VARCHAR(20) = NULL
+    @TelObraSocial VARCHAR(20) = NULL,
+	@Descuento DECIMAL(5,2) = 0
 AS
 BEGIN
     INSERT INTO Datos.Socio (
         DNI, Nombre, Apellido, Email, FechaNacimiento, Telefono, Domicilio,
-        TelefonoEmergencia, ObraSocial, NumObraSocial, TelObraSocial
+        TelefonoEmergencia, ObraSocial, NumObraSocial, TelObraSocial, Descuento
     )
     VALUES (
         @DNI, @Nombre, @Apellido, @Email, @FechaNacimiento, @Telefono, @Domicilio,
-        @TelefonoEmergencia, @ObraSocial, @NumObraSocial, @TelObraSocial
+        @TelefonoEmergencia, @ObraSocial, @NumObraSocial, @TelObraSocial, @Descuento
     );
 END;
 GO
@@ -121,7 +131,8 @@ CREATE PROCEDURE Operaciones.ActualizarSocio
     @TelefonoEmergencia VARCHAR(20),
     @ObraSocial NVARCHAR(100) = NULL,
     @NumObraSocial NVARCHAR(50) = NULL,
-    @TelObraSocial VARCHAR(20) = NULL
+    @TelObraSocial VARCHAR(20) = NULL,
+	@Descuento DECIMAL(5,2) = 0
 AS
 BEGIN
     UPDATE Datos.Socio
@@ -134,7 +145,8 @@ BEGIN
         TelefonoEmergencia = @TelefonoEmergencia,
         ObraSocial = @ObraSocial,
         NumObraSocial = @NumObraSocial,
-        TelObraSocial = @TelObraSocial
+        TelObraSocial = @TelObraSocial,
+		Descuento = @Descuento
     WHERE DNI = @DNI;
 END;
 GO
@@ -272,5 +284,39 @@ BEGIN
     UPDATE Facturacion.Factura
     SET Estado = 'Anulada'
     WHERE ID_Factura = @ID_Factura;
+END;
+GO
+-- Procedimientos para USUARIO
+
+-- Insertar un nuevo Usuario
+CREATE PROCEDURE Operaciones.InsertarUsuario
+    @NomUsuario NVARCHAR(50),
+    @Contrasenia NVARCHAR(100),
+    @DNI INT
+AS
+BEGIN
+    INSERT INTO Datos.Usuario (NomUsuario, Contrasenia, DNI)
+    VALUES (@NomUsuario, @Contrasenia, @DNI);
+END;
+GO
+
+-- Actualizar un Usuario existente
+CREATE PROCEDURE Operaciones.ActualizarUsuario
+    @NomUsuario NVARCHAR(50),
+    @Contrasenia NVARCHAR(100)
+AS
+BEGIN
+    UPDATE Datos.Usuario
+    SET Contrasenia = @Contrasenia
+    WHERE NomUsuario = @NomUsuario;
+END;
+GO
+-- Eliminar un Usuario (borrar físico)
+CREATE PROCEDURE Operaciones.EliminarUsuario
+    @NomUsuario NVARCHAR(50)
+AS
+BEGIN
+    DELETE FROM Datos.Usuario
+    WHERE NomUsuario = @NomUsuario;
 END;
 GO
