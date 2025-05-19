@@ -87,12 +87,18 @@ CREATE TABLE Facturacion.FacturaDetalleActividad (
 );
 
 CREATE TABLE Datos.Usuario (
-    NomUsuario NVARCHAR(50) PRIMARY KEY,
+    DNI INT NOT NULL,
+    ID_rol INT NOT NULL,
+    Usuario NVARCHAR(100) NOT NULL,
     Contrasenia NVARCHAR(100) NOT NULL,
-    DNI INT NOT NULL UNIQUE,
+    Estado NVARCHAR(50),
+    CaducidadContrasenia DATE,
+    IDCuotasPagas INT,
+    PRIMARY KEY (DNI, ID_rol, Usuario),
     FOREIGN KEY (DNI) REFERENCES Datos.Socio(DNI)
 );
-GO
+
+
 
 -- Procedimientos para SOCIO
 CREATE PROCEDURE Operaciones.InsertarSocio 
@@ -290,33 +296,54 @@ GO
 
 -- Insertar un nuevo Usuario
 CREATE PROCEDURE Operaciones.InsertarUsuario
-    @NomUsuario NVARCHAR(50),
+    @DNI INT,
+    @ID_rol INT,
+    @Usuario NVARCHAR(100),
     @Contrasenia NVARCHAR(100),
-    @DNI INT
+    @Estado NVARCHAR(50),
+    @CaducidadContrasenia DATE = NULL,
+    @IDCuotasPagas INT = NULL
 AS
 BEGIN
-    INSERT INTO Datos.Usuario (NomUsuario, Contrasenia, DNI)
-    VALUES (@NomUsuario, @Contrasenia, @DNI);
+    INSERT INTO Datos.Usuario (
+        DNI, ID_rol, Usuario, Contrasenia, Estado, CaducidadContrasenia, IDCuotasPagas
+    )
+    VALUES (
+        @DNI, @ID_rol, @Usuario, @Contrasenia, @Estado, @CaducidadContrasenia, @IDCuotasPagas
+    );
 END;
 GO
 
+
 -- Actualizar un Usuario existente
 CREATE PROCEDURE Operaciones.ActualizarUsuario
-    @NomUsuario NVARCHAR(50),
-    @Contrasenia NVARCHAR(100)
+    @DNI INT,
+    @ID_rol INT,
+    @Usuario NVARCHAR(100),
+    @Contrasenia NVARCHAR(100),
+    @Estado NVARCHAR(50),
+    @CaducidadContrasenia DATE = NULL,
+    @IDCuotasPagas INT = NULL
 AS
 BEGIN
     UPDATE Datos.Usuario
-    SET Contrasenia = @Contrasenia
-    WHERE NomUsuario = @NomUsuario;
+    SET 
+        Contrasenia = @Contrasenia,
+        Estado = @Estado,
+        CaducidadContrasenia = @CaducidadContrasenia,
+        IDCuotasPagas = @IDCuotasPagas
+    WHERE DNI = @DNI AND ID_rol = @ID_rol AND Usuario = @Usuario;
 END;
 GO
+
 -- Eliminar un Usuario (borrar físico)
 CREATE PROCEDURE Operaciones.EliminarUsuario
-    @NomUsuario NVARCHAR(50)
+    @DNI INT,
+    @ID_rol INT,
+    @Usuario NVARCHAR(100)
 AS
 BEGIN
     DELETE FROM Datos.Usuario
-    WHERE NomUsuario = @NomUsuario;
+    WHERE DNI = @DNI AND ID_rol = @ID_rol AND Usuario = @Usuario;
 END;
 GO
