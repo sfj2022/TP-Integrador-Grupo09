@@ -70,7 +70,7 @@ GO
 
 CREATE TABLE Persona.SocioEmergencia (
   ID_socio INT,
-  Tel VARCHAR(15),
+  Tel VARCHAR(50),
   PRIMARY KEY (ID_socio, Tel),
   FOREIGN KEY (ID_socio) REFERENCES Persona.Socio(ID_socio)
 );
