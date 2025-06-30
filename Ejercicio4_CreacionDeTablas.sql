@@ -47,6 +47,8 @@ GO
 CREATE TABLE Persona.Socio (
   ID_socio INT PRIMARY KEY,
   DNI VARCHAR(8),
+  Nombre VARCHAR(50) ,
+  Apellido VARCHAR(50),
   Email VARCHAR(50),
   FechaNacimiento DATE,
   domicilio VARCHAR(100),

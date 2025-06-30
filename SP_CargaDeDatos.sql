@@ -237,7 +237,50 @@ CREATE OR ALTER PROCEDURE ProcesarHoja1 (
     @RutaArchivo VARCHAR(255))
 AS
 BEGIN
-DECLARE @NombreHoja CHAR(20)='Responsables de Pago';
+
+DECLARE @NombreHoja VARCHAR(20)='Responsables de Pago';
+EXEC ImportarExcel @RutaArchivo, @NombreHoja;
+--SELECT * FROM ##Excel_Hoja;
+DECLARE @ID_socio int,
+@nombre varchar(30),
+@apellido varchar(30),
+@DNI varchar(50),
+@FNac varchar(50), --modificarlo---------------------
+@TelCont int,
+@TelEmerg1 varchar(50),
+@TelEmerg2 varchar(50),
+@NombObraSocial varchar(30),
+@NroSocioObraSocial varchar(30);
+
+
+SELECT TOP 1 
+    @ID_socio = TRY_CAST(REPLACE([Nro de socio], 'SN-', '') AS INT),
+	@nombre = [Nombre],
+    @apellido = [ apellido],
+    @DNI = [ DNI],
+    @FNac = [ fecha de nacimiento],  --Modificarlo
+    @TelCont = [ teléfono de contacto],
+    @TelEmerg1 =  CONVERT(VARCHAR(50),[ teléfono de contacto emergencia]),
+    @TelEmerg2 = [teléfono de contacto de emergencia ],
+    @NombObraSocial = [ Nombre de la obra social o prepaga],
+    @NroSocioObraSocial = [nro# de socio obra social/prepaga ]
+
+FROM ##Excel_Hoja;
+ 
+ SELECT 
+    @ID_socio AS ID_socio,
+    @nombre AS Nombre,
+    @apellido AS Apellido,
+    @DNI AS DNI,
+    @FNac AS FechaNacimiento,
+    @TelCont AS TelefonoContacto,
+    @TelEmerg1 AS TelEmergencia1,
+    @TelEmerg2 AS TelEmergencia2,
+    @NombObraSocial AS ObraSocial,
+    @NroSocioObraSocial AS NumeroSocioOS;
+
+
+
 
 
 END
