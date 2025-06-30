@@ -31,8 +31,11 @@ Alumnos:
 -- Stored Procedures para la tabla Persona.Socio
 -- ===============================================
 
+USE SolNorteDB
+
+GO
 -- SP para insertar un nuevo socio
-CREATE PROCEDURE InsertarSocio
+CREATE OR ALTER PROCEDURE InsertarSocio
     @ID_socio INT,
     @DNI VARCHAR(8),
     @Email VARCHAR(50),
@@ -99,7 +102,7 @@ END;
 GO
 
 -- SP para actualizar un socio existente
-CREATE PROCEDURE ActualizarSocio
+CREATE OR ALTER PROCEDURE ActualizarSocio
     @ID_socio INT,
     @DNI VARCHAR(8) = NULL,
     @Email VARCHAR(50) = NULL,
@@ -167,7 +170,7 @@ END;
 GO
 
 -- SP para eliminar un socio (borrado lógico)
-CREATE PROCEDURE EliminarSocio
+CREATE OR ALTER PROCEDURE EliminarSocio
     @ID_socio INT
 AS
 BEGIN
@@ -191,8 +194,8 @@ GO
 -- Stored Procedures para la tabla Persona.SocioTelefonos
 -- ====================================================
 
-- SP para insertar un nuevo teléfono de socio
-CREATE PROCEDURE InsertarSocioTelefono
+-- SP para insertar un nuevo teléfono de socio
+CREATE OR ALTER PROCEDURE InsertarSocioTelefono
     @ID_socio INT,
     @Tel VARCHAR(15)
 AS
@@ -226,7 +229,7 @@ END;
 GO
 
 --  Actualizar un teléfono de socio
-CREATE PROCEDURE ActualizarSocioTelefono
+CREATE OR ALTER PROCEDURE ActualizarSocioTelefono
     @ID_socio INT,
     @TelAntiguo VARCHAR(15),
     @TelNuevo VARCHAR(15)
@@ -265,7 +268,7 @@ END;
 GO
 
 -- SP para eliminar un teléfono de socio
-CREATE PROCEDURE EliminarSocioTelefono
+CREATE OR ALTER PROCEDURE EliminarSocioTelefono
     @ID_socio INT,
     @Tel VARCHAR(15)
 AS
@@ -288,7 +291,7 @@ GO
 -- Stored Procedures para la tabla Persona.SocioEmergencia
 -- =========================================================
 
-CREATE PROCEDURE InsertarSocioEmergencia
+CREATE OR ALTER PROCEDURE InsertarSocioEmergencia
     @ID_socio INT,
     @Tel VARCHAR(50)
 AS
@@ -322,7 +325,7 @@ END;
 GO
 
 -- SP para actualizar un teléfono de emergencia de socio
-CREATE PROCEDURE ActualizarSocioEmergencia
+CREATE OR ALTER PROCEDURE ActualizarSocioEmergencia
     @ID_socio INT,
     @TelAntiguo VARCHAR(50),
     @TelNuevo VARCHAR(50)
@@ -362,7 +365,7 @@ GO
 
 
 -- SP para eliminar un teléfono de emergencia de socio
-CREATE PROCEDURE EliminarSocioEmergencia
+CREATE OR ALTER PROCEDURE EliminarSocioEmergencia
     @ID_socio INT,
     @Tel VARCHAR(50)
 AS
@@ -387,7 +390,7 @@ GO
 -- ===============================================
 
 -- SP para insertar un nuevo invitado
-CREATE PROCEDURE InsertarInvitado
+CREATE OR ALTER PROCEDURE InsertarInvitado
     @DNI VARCHAR(8),
     @fecha DATE,
     @ID_socio INT,
@@ -442,7 +445,7 @@ END;
 GO
 
 -- SP para actualizar un invitado existente
-CREATE PROCEDURE ActualizarInvitado
+CREATE OR ALTER PROCEDURE ActualizarInvitado
     @DNI VARCHAR(8),
     @fecha DATE,
     @ID_socio INT = NULL,
@@ -483,7 +486,7 @@ END;
 GO
 
 -- SP para eliminar un invitado (borrado físico, ya que no tiene un estado)
-CREATE PROCEDURE EliminarInvitado
+CREATE OR ALTER PROCEDURE EliminarInvitado
     @DNI VARCHAR(8),
     @fecha DATE
 AS
@@ -507,7 +510,7 @@ GO
 -- ====================================================
 
 -- SP para insertar una nueva relación de responsabilidad
-CREATE PROCEDURE InsertarResponsabilidad
+CREATE OR ALTER PROCEDURE InsertarResponsabilidad
     @ID_responsable INT,
     @ID_menor INT
 AS
@@ -547,7 +550,7 @@ END;
 GO
 
 -- SP para eliminar una relación de responsabilidad
-CREATE PROCEDURE EliminarResponsabilidad
+CREATE OR ALTER PROCEDURE EliminarResponsabilidad
     @ID_responsable INT,
     @ID_menor INT
 AS
@@ -570,7 +573,7 @@ GO
 -- ===============================================
 
 -- SP para insertar un nuevo rol
-CREATE PROCEDURE InsertarRol
+CREATE OR ALTER PROCEDURE InsertarRol
     @ID_rol INT,
     @nombre VARCHAR(20),
     @descripcion VARCHAR(280)
@@ -598,7 +601,7 @@ END;
 GO
 
 -- SP para actualizar un rol existente
-CREATE PROCEDURE ActualizarRol
+CREATE OR ALTER PROCEDURE ActualizarRol
     @ID_rol INT,
     @nombre VARCHAR(20) = NULL,
     @descripcion VARCHAR(280) = NULL
@@ -630,7 +633,7 @@ END;
 GO
 
 -- SP para eliminar un rol
-CREATE PROCEDURE EliminarRol
+CREATE OR ALTER PROCEDURE EliminarRol
     @ID_rol INT
 AS
 BEGIN
@@ -659,7 +662,7 @@ GO
 -- ==================================================
 
 -- SP para insertar nuevo personal
-CREATE PROCEDURE InsertarPersonal
+CREATE OR ALTER PROCEDURE InsertarPersonal
     @ID_personal INT,
     @ID_rol INT,
     @nombre VARCHAR(50),
@@ -732,7 +735,7 @@ END;
 GO
 
 -- SP para actualizar personal existente
-CREATE PROCEDURE ActualizarPersonal
+CREATE OR ALTER PROCEDURE ActualizarPersonal
     @ID_personal INT,
     @ID_rol INT = NULL,
     @nombre VARCHAR(50) = NULL,
@@ -778,7 +781,7 @@ END;
 GO
 
 -- SP para eliminar personal (borrado físico, se podría considerar lógico si se añade un campo de estado)
-CREATE PROCEDURE EliminarPersonal
+CREATE OR ALTER PROCEDURE EliminarPersonal
     @ID_personal INT
 AS
 BEGIN
@@ -800,7 +803,7 @@ GO
 -- ===================================================
 
 -- SP para insertar una nueva membresía
-CREATE PROCEDURE InsertarMembresia
+CREATE OR ALTER PROCEDURE InsertarMembresia
     @ID_tipo INT,
     @nombre VARCHAR(20),
     @descripcion VARCHAR(140),
@@ -835,7 +838,7 @@ END;
 GO
 
 -- SP para actualizar una membresía existente
-CREATE PROCEDURE ActualizarMembresia
+CREATE OR ALTER PROCEDURE ActualizarMembresia
     @ID_tipo INT,
     @nombre VARCHAR(20) = NULL,
     @descripcion VARCHAR(140) = NULL,
@@ -875,7 +878,7 @@ END;
 GO
 
 -- SP para eliminar una membresía
-CREATE PROCEDURE EliminarMembresia
+CREATE OR ALTER PROCEDURE EliminarMembresia
     @ID_tipo INT
 AS
 BEGIN
@@ -905,7 +908,7 @@ GO
 -- =========================================================
 
 -- SP para insertar una nueva inscripción de socio
-CREATE PROCEDURE InsertarInscripcionSocio
+CREATE OR ALTER PROCEDURE InsertarInscripcionSocio
     @ID_socio INT,
     @ID_inscripcion INT,
     @ID_membresia INT,
@@ -958,7 +961,7 @@ END;
 GO
 
 -- SP para actualizar una inscripción de socio existente
-CREATE PROCEDURE ActualizarInscripcionSocio
+CREATE OR ALTER PROCEDURE ActualizarInscripcionSocio
     @ID_socio INT,
     @ID_inscripcion INT,
     @ID_membresia INT = NULL,
@@ -1005,7 +1008,7 @@ END;
 GO
 
 -- SP para eliminar una inscripción de socio
-CREATE PROCEDURE EliminarInscripcionSocio
+CREATE OR ALTER PROCEDURE EliminarInscripcionSocio
     @ID_socio INT,
     @ID_inscripcion INT
 AS
@@ -1028,7 +1031,7 @@ GO
 -- ============================================================
 
 -- SP para insertar una nueva actividad deportiva
-CREATE PROCEDURE InsertarActividadDeportiva
+CREATE OR ALTER PROCEDURE InsertarActividadDeportiva
     @ID_actividad INT,
     @Nombre VARCHAR(32),
     @costo DECIMAL(10,2)
@@ -1062,7 +1065,7 @@ END;
 GO
 
 -- SP para actualizar una actividad deportiva existente
-CREATE PROCEDURE ActualizarActividadDeportiva
+CREATE OR ALTER PROCEDURE ActualizarActividadDeportiva
     @ID_actividad INT,
     @Nombre VARCHAR(32) = NULL,
     @costo DECIMAL(10,2) = NULL
@@ -1100,7 +1103,7 @@ END;
 GO
 
 -- SP para eliminar una actividad deportiva
-CREATE PROCEDURE EliminarActividadDeportiva
+CREATE OR ALTER PROCEDURE EliminarActividadDeportiva
     @ID_actividad INT
 AS
 BEGIN
@@ -1136,7 +1139,7 @@ GO
 -- ========================================================
 
 -- SP para insertar una nueva actividad "otra"
-CREATE PROCEDURE InsertarActividadOtra
+CREATE OR ALTER PROCEDURE InsertarActividadOtra
     @ID_actividad INT,
     @Nombre VARCHAR(32),
     @costo_socio DECIMAL(10,2),
@@ -1177,7 +1180,7 @@ END;
 GO
 
 -- SP para actualizar una actividad "otra" existente
-CREATE PROCEDURE ActualizarActividadOtra
+CREATE OR ALTER PROCEDURE ActualizarActividadOtra
     @ID_actividad INT,
     @Nombre VARCHAR(32) = NULL,
     @costo_socio DECIMAL(10,2) = NULL,
@@ -1223,7 +1226,7 @@ END;
 GO
 
 -- SP para eliminar una actividad "otra"
-CREATE PROCEDURE EliminarActividadOtra
+CREATE OR ALTER PROCEDURE EliminarActividadOtra
     @ID_actividad INT
 AS
 BEGIN
@@ -1259,7 +1262,7 @@ GO
 -- =======================================================
 
 -- SP para insertar un nuevo turno de actividad deportiva
-CREATE PROCEDURE InsertarAcDepTurno
+CREATE OR ALTER PROCEDURE InsertarAcDepTurno
     @ID_actividad INT,
     @ID_turno INT,
     @turno VARCHAR(64)
@@ -1294,7 +1297,7 @@ END;
 GO
 
 -- SP para actualizar un turno de actividad deportiva existente
-CREATE PROCEDURE ActualizarAcDepTurno
+CREATE OR ALTER PROCEDURE ActualizarAcDepTurno
     @ID_actividad INT,
     @ID_turno INT,
     @turno VARCHAR(64) = NULL
@@ -1325,7 +1328,7 @@ END;
 GO
 
 -- SP para eliminar un turno de actividad deportiva
-CREATE PROCEDURE EliminarAcDepTurno
+CREATE OR ALTER PROCEDURE EliminarAcDepTurno
     @ID_actividad INT,
     @ID_turno INT
 AS
@@ -1356,7 +1359,7 @@ GO
 -- =====================================================
 
 -- SP para insertar un nuevo turno de actividad "otra"
-CREATE PROCEDURE InsertarAcOtraTurno
+CREATE OR ALTER PROCEDURE InsertarAcOtraTurno
     @ID_actividad INT,
     @ID_turno INT,
     @turno VARCHAR(64)
@@ -1391,7 +1394,7 @@ END;
 GO
 
 -- SP para actualizar un turno de actividad "otra" existente
-CREATE PROCEDURE ActualizarAcOtraTurno
+CREATE OR ALTER PROCEDURE ActualizarAcOtraTurno
     @ID_actividad INT,
     @ID_turno INT,
     @turno VARCHAR(64) = NULL
@@ -1422,7 +1425,7 @@ END;
 GO
 
 -- SP para eliminar un turno de actividad "otra"
-CREATE PROCEDURE EliminarAcOtraTurno
+CREATE OR ALTER PROCEDURE EliminarAcOtraTurno
     @ID_actividad INT,
     @ID_turno INT
 AS
@@ -1453,7 +1456,7 @@ GO
 -- ==========================================================
 
 -- SP para insertar una nueva inscripción deportiva
-CREATE PROCEDURE InsertarInscripcionDeportiva
+CREATE OR ALTER PROCEDURE InsertarInscripcionDeportiva
     @ID_socio INT,
     @ID_inscripcion INT,
     @ID_actividad INT,
@@ -1507,7 +1510,7 @@ END;
 GO
 
 -- SP para actualizar una inscripción deportiva existente
-CREATE PROCEDURE ActualizarInscripcionDeportiva
+CREATE OR ALTER PROCEDURE ActualizarInscripcionDeportiva
     @ID_socio INT,
     @ID_inscripcion INT,
     @ID_actividad INT = NULL,
@@ -1561,7 +1564,7 @@ END;
 GO
 
 -- SP para eliminar una inscripción deportiva
-CREATE PROCEDURE EliminarInscripcionDeportiva
+CREATE OR ALTER PROCEDURE EliminarInscripcionDeportiva
     @ID_socio INT,
     @ID_inscripcion INT
 AS
@@ -1585,7 +1588,7 @@ GO
 -- ======================================================
 
 -- SP para insertar una nueva inscripción de actividad "otra"
-CREATE PROCEDURE InsertarInscripcionOtra
+CREATE OR ALTER PROCEDURE InsertarInscripcionOtra
     @ID_socio INT,
     @ID_inscripcion INT,
     @ID_actividad INT,
@@ -1639,7 +1642,7 @@ END;
 GO
 
 -- SP para actualizar una inscripción de actividad "otra" existente
-CREATE PROCEDURE ActualizarInscripcionOtra
+CREATE OR ALTER PROCEDURE ActualizarInscripcionOtra
     @ID_socio INT,
     @ID_inscripcion INT,
     @ID_actividad INT = NULL,
@@ -1694,7 +1697,7 @@ END;
 GO
 
 -- SP para eliminar una inscripción de actividad "otra"
-CREATE PROCEDURE EliminarInscripcionOtra
+CREATE OR ALTER PROCEDURE EliminarInscripcionOtra
     @ID_socio INT,
     @ID_inscripcion INT
 AS
@@ -1719,7 +1722,7 @@ GO
 -- Stored Procedures para la tabla Finanzas.MedioDePago
 
 -- SP para insertar un nuevo medio de pago
-CREATE PROCEDURE InsertarMedioDePago
+CREATE OR ALTER PROCEDURE InsertarMedioDePago
     @ID_banco INT,
     @nombre VARCHAR(32)
 AS
@@ -1744,7 +1747,7 @@ END;
 GO
 
 -- SP para actualizar un medio de pago
-CREATE PROCEDURE ActualizarMedioDePago
+CREATE OR ALTER PROCEDURE ActualizarMedioDePago
     @ID_banco INT,
     @nombre VARCHAR(32) = NULL
 AS
@@ -1770,7 +1773,7 @@ END;
 GO
 
 -- SP para eliminar un medio de pago
-CREATE PROCEDURE EliminarMedioDePago
+CREATE OR ALTER PROCEDURE EliminarMedioDePago
     @ID_banco INT
 AS
 BEGIN
@@ -1797,7 +1800,7 @@ GO
 -- Stored Procedures para la tabla Finansas.Cuenta
 
 -- SP para insertar una nueva cuenta
-CREATE PROCEDURE InsertarCuenta
+CREATE OR ALTER PROCEDURE InsertarCuenta
     @ID_socio INT,
     @ID_cuenta INT,
     @ID_banco INT,
@@ -1855,7 +1858,7 @@ END;
 GO
 
 -- SP para actualizar una cuenta existente
-CREATE PROCEDURE ActualizarCuenta
+CREATE OR ALTER PROCEDURE ActualizarCuenta
     @ID_socio INT,
     @ID_cuenta INT,
     @ID_banco INT = NULL,
@@ -1910,7 +1913,7 @@ END;
 GO
 
 -- SP para eliminar una cuenta
-CREATE PROCEDURE EliminarCuenta
+CREATE OR ALTER PROCEDURE EliminarCuenta
     @ID_socio INT,
     @ID_cuenta INT
 AS
@@ -1943,7 +1946,7 @@ GO
 -- Stored Procedures para la tabla Finansas.Cuota
 
 -- SP para insertar una nueva cuota
-CREATE PROCEDURE InsertarCuota
+CREATE OR ALTER PROCEDURE InsertarCuota
     @ID_cuota INT,
     @ID_socio INT,
     @ID_inscripcion INT,
@@ -2032,7 +2035,7 @@ END;
 GO
 
 -- SP para actualizar una cuota existente
-CREATE PROCEDURE ActualizarCuota
+CREATE OR ALTER PROCEDURE ActualizarCuota
     @ID_cuota INT,
     @ID_socio INT = NULL,
     @ID_inscripcion INT = NULL,
@@ -2128,7 +2131,7 @@ END;
 GO
 
 -- SP para eliminar una cuota
-CREATE PROCEDURE EliminarCuota
+CREATE OR ALTER PROCEDURE EliminarCuota
     @ID_cuota INT
 AS
 BEGIN
@@ -2155,7 +2158,7 @@ GO
 -- Stored Procedures para la tabla Finansas.factura
 
 -- SP para insertar una nueva factura
-CREATE PROCEDURE InsertarFactura
+CREATE OR ALTER PROCEDURE InsertarFactura
     @ID_factura INT,
     @DNI VARCHAR(8),
     @CUIT VARCHAR(11),
@@ -2214,7 +2217,7 @@ END;
 GO
 
 -- SP para actualizar una factura existente
-CREATE PROCEDURE ActualizarFactura
+CREATE OR ALTER PROCEDURE ActualizarFactura
     @ID_factura INT,
     @DNI VARCHAR(8) = NULL,
     @CUIT VARCHAR(11) = NULL,
@@ -2268,7 +2271,7 @@ END;
 GO
 
 -- SP para eliminar una factura
-CREATE PROCEDURE EliminarFactura
+CREATE OR ALTER PROCEDURE EliminarFactura
     @ID_factura INT
 AS
 BEGIN
@@ -2305,7 +2308,7 @@ GO
 -- Stored Procedures para la tabla Finansas.detalle_factura
 
 -- SP para insertar un nuevo detalle de factura
-CREATE PROCEDURE InsertarDetalleFactura
+CREATE OR ALTER PROCEDURE InsertarDetalleFactura
     @ID_factura INT,
     @ID_cuota INT,
     @ID_inscripcion INT,
@@ -2369,7 +2372,7 @@ END;
 GO
 
 -- SP para actualizar un detalle de factura existente
-CREATE PROCEDURE ActualizarDetalleFactura
+CREATE OR ALTER PROCEDURE ActualizarDetalleFactura
     @ID_factura INT,
     @ID_cuota INT,
     @ID_inscripcion INT = NULL,
@@ -2424,7 +2427,7 @@ END;
 GO
 
 -- SP para eliminar un detalle de factura
-CREATE PROCEDURE EliminarDetalleFactura
+CREATE OR ALTER PROCEDURE EliminarDetalleFactura
     @ID_factura INT,
     @ID_cuota INT
 AS
@@ -2445,7 +2448,7 @@ GO
 -- Stored Procedures para la tabla Finansas.cobro
 
 -- SP para insertar un nuevo cobro
-CREATE PROCEDURE InsertarCobro
+CREATE OR ALTER PROCEDURE InsertarCobro
     @ID_factura INT,
     @ID_socio INT,
     @ID_cuenta INT,
@@ -2485,7 +2488,7 @@ END;
 GO
 
 -- SP para actualizar un cobro existente
-CREATE PROCEDURE ActualizarCobro
+CREATE OR ALTER PROCEDURE ActualizarCobro
     @ID_factura INT,
     @ID_socio INT,
     @ID_cuenta INT,
@@ -2517,7 +2520,7 @@ END;
 GO
 
 -- SP para eliminar un cobro
-CREATE PROCEDURE EliminarCobro
+CREATE OR ALTER PROCEDURE EliminarCobro
     @ID_factura INT,
     @ID_socio INT,
     @ID_cuenta INT
@@ -2539,7 +2542,7 @@ GO
 -- Stored Procedures para la tabla Finansas.reembolso
 
 -- SP para insertar un nuevo reembolso
-CREATE PROCEDURE InsertarReembolso
+CREATE OR ALTER PROCEDURE InsertarReembolso
     @ID_factura INT,
     @ID_socio INT,
     @ID_cuenta INT,
@@ -2579,7 +2582,7 @@ END;
 GO
 
 -- SP para actualizar un reembolso existente
-CREATE PROCEDURE ActualizarReembolso
+CREATE OR ALTER PROCEDURE ActualizarReembolso
     @ID_factura INT,
     @ID_socio INT,
     @ID_cuenta INT,
@@ -2611,7 +2614,7 @@ END;
 GO
 
 -- SP para eliminar un reembolso
-CREATE PROCEDURE EliminarReembolso
+CREATE OR ALTER PROCEDURE EliminarReembolso
     @ID_factura INT,
     @ID_socio INT,
     @ID_cuenta INT
@@ -2637,7 +2640,7 @@ GO
 -- Stored Procedures para la tabla Asistencia.dias
 
 -- SP para insertar un nuevo día
-CREATE PROCEDURE InsertarDia
+CREATE OR ALTER PROCEDURE InsertarDia
     @fecha DATE,
     @climaMalo BIT
 AS
@@ -2662,7 +2665,7 @@ END;
 GO
 
 -- SP para actualizar un día existente
-CREATE PROCEDURE ActualizarDia
+CREATE OR ALTER PROCEDURE ActualizarDia
     @fecha DATE,
     @climaMalo BIT = NULL
 AS
@@ -2682,7 +2685,7 @@ END;
 GO
 
 -- SP para eliminar un día
-CREATE PROCEDURE EliminarDia
+CREATE OR ALTER PROCEDURE EliminarDia
     @fecha DATE
 AS
 BEGIN
@@ -2709,7 +2712,7 @@ GO
 -- Stored Procedures para la tabla Asistencia.asistencia
 
 -- SP para insertar un nuevo registro de asistencia
-CREATE PROCEDURE InsertarAsistencia
+CREATE OR ALTER PROCEDURE InsertarAsistencia
     @ID_socio INT,
     @ID_actividad INT,
     @ID_turno INT,
@@ -2750,7 +2753,7 @@ END;
 GO
 
 -- SP para actualizar un registro de asistencia existente
-CREATE PROCEDURE ActualizarAsistencia
+CREATE OR ALTER PROCEDURE ActualizarAsistencia
     @ID_socio INT,
     @ID_actividad INT,
     @ID_turno INT,
@@ -2773,7 +2776,7 @@ END;
 GO
 
 -- SP para eliminar un registro de asistencia
-CREATE PROCEDURE EliminarAsistencia
+CREATE OR ALTER PROCEDURE EliminarAsistencia
     @ID_socio INT,
     @ID_actividad INT,
     @ID_turno INT,
