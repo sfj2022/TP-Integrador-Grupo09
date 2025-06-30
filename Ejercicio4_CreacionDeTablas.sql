@@ -54,7 +54,7 @@ CREATE TABLE Persona.Socio (
   domicilio VARCHAR(100),
   obra_social VARCHAR(50),
   numObraSocial VARCHAR(30),
-  telObraSocial VARCHAR(15),
+  telObraSocial VARCHAR(30),
   estado VARCHAR(10) CHECK (estado IN ('activo', 'inactivo', 'moroso')),
   usuario VARCHAR(16),
   contrasenia VARCHAR(32),
@@ -64,7 +64,7 @@ GO
 
 CREATE TABLE Persona.SocioTelefonos (
   ID_socio INT,
-  Tel VARCHAR(15),
+  Tel VARCHAR(50),
   PRIMARY KEY (ID_socio, Tel),
   FOREIGN KEY (ID_socio) REFERENCES Persona.Socio(ID_socio)
 );
@@ -72,7 +72,7 @@ GO
 
 CREATE TABLE Persona.SocioEmergencia (
   ID_socio INT,
-  Tel VARCHAR(15),
+  Tel VARCHAR(50),
   PRIMARY KEY (ID_socio, Tel),
   FOREIGN KEY (ID_socio) REFERENCES Persona.Socio(ID_socio)
 );
