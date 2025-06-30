@@ -1,6 +1,10 @@
 --Creacion de Store Procedures para la carga de datos
 USE SolNorteDB
+
+
+
 /*
+
 --CONFIGURACION DEL OPENROWSET - para la lectura del xlsx
 --Debe tener instalado el Microsoft Access Database Engine 2016 Redistributable Versión: x64 - Enlace de descarga: https://www.microsoft.com/en-us/download/details.aspx?id=54920
 
@@ -30,6 +34,9 @@ GO
 CREATE OR ALTER PROCEDURE ImportarExcel ( @RutaArchivo NVARCHAR(255),@NombreHoja NVARCHAR(128))
 AS
 BEGIN
+
+PRINT 'Importando desde archivo: ' + @RutaArchivo;
+
 SET NOCOUNT ON;
     DECLARE @Temp_Lectura_XLSX NVARCHAR(MAX);
     SET @Temp_Lectura_XLSX = '
@@ -45,9 +52,10 @@ SET NOCOUNT ON;
     EXEC sp_executesql @Temp_Lectura_XLSX;
 END
 
+/*
 EXEC ImportarExcel 'C:\data\Datos socios.xlsx', 'Tarifas';
 SELECT * FROM ##Excel_Hoja;
-
+*/
 
 -- ESTE SP separa la tabla temporal en 3 tablas de la hoja Tarifas, que sirve para procesar los datos de las tarifas
 -- Pide como parametro el nombre de la tabla temporal(de la hoja de Tarifas) , el rago de la fila 1, 2 y 3, el rango debe contener el titulo de la columna
@@ -87,6 +95,7 @@ BEGIN
     EXEC sp_executesql @SQL;
 END;
 
+/*
 GO
 EXEC SepararTablaTemporalEnTres
     '##Excel_Hoja', -- nombre de la tabla temporal existente
@@ -99,6 +108,137 @@ GO
 SELECT * FROM ##Tabla_Subtabla_1;
 SELECT * FROM ##Tabla_Subtabla_2;
 SELECT * FROM ##Tabla_Subtabla_3;
+*/
+
+GO
+DELETE FROM Persona.Socio;
+GO
+--SP que importa los datos de la primer hoja "Responsables de Pago" 
+CREATE OR ALTER PROCEDURE ProcesarHoja1 (
+    @RutaArchivo VARCHAR(255))
+AS
+BEGIN
+    SET NOCOUNT ON;
+	SET DATEFORMAT DMY; -- para que no de error el formato de la fecha
+
+DECLARE @NombreHoja VARCHAR(20)='Responsables de Pago';
+EXEC ImportarExcel @RutaArchivo, @NombreHoja;
+
+DECLARE
+@ID_socio INT,
+@nombre VARCHAR(30),
+@apellido VARCHAR(30),
+@DNI VARCHAR(10),
+@Email VARCHAR(50),
+@FNac DATE,
+@domicilio VARCHAR(100),
+@NombObraSocial VARCHAR(50),
+@NroSocioObraSocial VARCHAR(30),
+@TelCont VARCHAR(15),
+@TelEmerg1 VARCHAR(30),
+@TelEmerg2 VARCHAR(30),
+@estado VARCHAR(10),
+@usuario VARCHAR(16),
+@contrasenia VARCHAR(32),
+@caducidad_contrasenia DATE,
+@fila INT = 1,
+@total INT;
+
+SELECT @total = COUNT(*) FROM ##Excel_Hoja;
+
+-- Crear tabla temporal con numeración
+SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #ExcelNumerado
+FROM ##Excel_Hoja;
+
+SELECT COLUMN_NAME
+FROM tempdb.INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME LIKE '#ExcelNumerado%';
+ WHILE @fila <= @total
+ BEGIN
+	BEGIN TRY
+		SELECT
+            @ID_socio = TRY_CAST(REPLACE([Nro de socio], 'SN-', '') AS INT),
+            @nombre = [Nombre],
+			@apellido = [ apellido],
+			@DNI = [ DNI],
+            @Email = [ email personal],
+            @FNac = TRY_CAST([ fecha de nacimiento] AS DATE),
+            @domicilio = 'Sin domicilio', 
+            @NombObraSocial = [ Nombre de la obra social o prepaga],
+            @NroSocioObraSocial = [nro# de socio obra social/prepaga ],
+			@TelCont = [ teléfono de contacto],
+            @TelEmerg1 = CONVERT(VARCHAR(50),[ teléfono de contacto emergencia]),
+			@TelEmerg2 = CONVERT(VARCHAR(50),[ teléfono de contacto emergencia]),
+            @estado = 'activo',
+            @usuario = LEFT(LOWER(LEFT(@Email, CHARINDEX('@', @Email) - 1)), 16),
+            @contrasenia = '12345678', 
+            @caducidad_contrasenia = '31-12-2099'
+			FROM #ExcelNumerado
+			WHERE nro_fila = @fila;
+
+	EXEC InsertarSocio @ID_socio = @ID_socio, @DNI = @DNI, @Nombre = @nombre, @Apellido = @apellido, @Email = @Email, @FechaNacimiento = @FNac, @domicilio = @domicilio, @obra_social = @NombObraSocial, @numObraSocial = @NroSocioObraSocial, @telObraSocial = @TelCont, @estado = @estado, @usuario = @usuario, @contrasenia = @contrasenia, @caducidad_contrasenia = @caducidad_contrasenia;
+
+	 END TRY
+        BEGIN CATCH
+           PRINT 'Error al procesar el usuario ' + CAST(@fila AS VARCHAR) + ' (ID: ' + ISNULL(CAST(@ID_socio AS VARCHAR), 'NULL') + ', Nombre: ' + ISNULL(@nombre, 'NULL') + '): ' + ERROR_MESSAGE();
+
+        END CATCH;
+
+	SET @fila += 1;
+	END
+
+END
+
+GO
+--EXEC ProcesarHoja1 'C:\data\Datos socios.xlsx';
+
+--Select * from Persona.Socio
+GO
+--SP que importa los datos de la segunda hoja "Grupo Familiar" 
+CREATE OR ALTER PROCEDURE ProcesarHoja2 (
+    @RutaArchivo VARCHAR(255))
+AS
+BEGIN
+DECLARE @NombreHoja CHAR(20)='Grupo Familiar';
+
+
+END
+
+GO
+--SP que importa los datos de la tercer hoja "pago cuotas" 
+CREATE OR ALTER PROCEDURE ProcesarHoja3 (
+    @RutaArchivo VARCHAR(255))
+AS
+BEGIN
+DECLARE @NombreHoja CHAR(20)='pago cuotas';
+
+
+END
+
+GO
+--SP que importa los datos de la cuarta hoja "Tarifas" 
+CREATE OR ALTER PROCEDURE ProcesarHoja4 (
+    @RutaArchivo VARCHAR(255))
+AS
+BEGIN
+DECLARE @NombreHoja CHAR(20)='Tarifas';
+
+
+END
+
+GO
+--SP que importa los datos de la quinta hoja "presentismo_actividades" 
+CREATE OR ALTER PROCEDURE ProcesarHoja5 (
+    @RutaArchivo VARCHAR(255))
+AS
+BEGIN
+DECLARE @NombreHoja CHAR(20)='presentismo_actividades';
+
+
+END
+
+
 
 /*
 GO
@@ -231,100 +371,3 @@ BEGIN
 drop table tabla_temporal;
 END;
 */
-GO
---SP que importa los datos de la primer hoja "Responsables de Pago" 
-CREATE OR ALTER PROCEDURE ProcesarHoja1 (
-    @RutaArchivo VARCHAR(255))
-AS
-BEGIN
-
-DECLARE @NombreHoja VARCHAR(20)='Responsables de Pago';
-EXEC ImportarExcel @RutaArchivo, @NombreHoja;
---SELECT * FROM ##Excel_Hoja;
-DECLARE @ID_socio int,
-@nombre varchar(30),
-@apellido varchar(30),
-@DNI varchar(50),
-@FNac varchar(50), --modificarlo---------------------
-@TelCont int,
-@TelEmerg1 varchar(50),
-@TelEmerg2 varchar(50),
-@NombObraSocial varchar(30),
-@NroSocioObraSocial varchar(30);
-
-
-SELECT TOP 1 
-    @ID_socio = TRY_CAST(REPLACE([Nro de socio], 'SN-', '') AS INT),
-	@nombre = [Nombre],
-    @apellido = [ apellido],
-    @DNI = [ DNI],
-    @FNac = [ fecha de nacimiento],  --Modificarlo
-    @TelCont = [ teléfono de contacto],
-    @TelEmerg1 =  CONVERT(VARCHAR(50),[ teléfono de contacto emergencia]),
-    @TelEmerg2 = [teléfono de contacto de emergencia ],
-    @NombObraSocial = [ Nombre de la obra social o prepaga],
-    @NroSocioObraSocial = [nro# de socio obra social/prepaga ]
-
-FROM ##Excel_Hoja;
- 
- SELECT 
-    @ID_socio AS ID_socio,
-    @nombre AS Nombre,
-    @apellido AS Apellido,
-    @DNI AS DNI,
-    @FNac AS FechaNacimiento,
-    @TelCont AS TelefonoContacto,
-    @TelEmerg1 AS TelEmergencia1,
-    @TelEmerg2 AS TelEmergencia2,
-    @NombObraSocial AS ObraSocial,
-    @NroSocioObraSocial AS NumeroSocioOS;
-
-
-
-
-
-END
-
-GO
---SP que importa los datos de la segunda hoja "Grupo Familiar" 
-CREATE OR ALTER PROCEDURE ProcesarHoja2 (
-    @RutaArchivo VARCHAR(255))
-AS
-BEGIN
-DECLARE @NombreHoja CHAR(20)='Grupo Familiar';
-
-
-END
-
-GO
---SP que importa los datos de la tercer hoja "pago cuotas" 
-CREATE OR ALTER PROCEDURE ProcesarHoja3 (
-    @RutaArchivo VARCHAR(255))
-AS
-BEGIN
-DECLARE @NombreHoja CHAR(20)='pago cuotas';
-
-
-END
-
-GO
---SP que importa los datos de la cuarta hoja "Tarifas" 
-CREATE OR ALTER PROCEDURE ProcesarHoja4 (
-    @RutaArchivo VARCHAR(255))
-AS
-BEGIN
-DECLARE @NombreHoja CHAR(20)='Tarifas';
-
-
-END
-
-GO
---SP que importa los datos de la quinta hoja "presentismo_actividades" 
-CREATE OR ALTER PROCEDURE ProcesarHoja5 (
-    @RutaArchivo VARCHAR(255))
-AS
-BEGIN
-DECLARE @NombreHoja CHAR(20)='presentismo_actividades';
-
-
-END

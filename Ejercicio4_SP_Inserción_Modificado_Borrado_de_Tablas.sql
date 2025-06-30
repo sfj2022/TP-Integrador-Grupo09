@@ -38,6 +38,8 @@ GO
 CREATE OR ALTER PROCEDURE InsertarSocio
     @ID_socio INT,
     @DNI VARCHAR(8),
+	@Nombre VARCHAR(50),
+	@Apellido VARCHAR(50),
     @Email VARCHAR(50),
     @FechaNacimiento DATE,
     @domicilio VARCHAR(100),
@@ -55,47 +57,58 @@ BEGIN
     -- Validaciones básicas
     IF @DNI IS NULL
     BEGIN
-        PRINT 'ERROR: El DNI no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El DNI no puede estar vacío.', 1;
     END
 
     IF LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
     BEGIN
-        PRINT 'ERROR: El DNI debe contener 8 dígitos numéricos.';
-        RETURN;
+        THROW 50001, 'ERROR: El DNI debe contener 8 dígitos numéricos.', 1;
+
     END
+
+	IF @nombre IS NULL OR @nombre LIKE '%[^A-Za-zÁÉÍÓÚÑáéíóúñ ]%'
+	BEGIN
+		THROW 50001, 'ERROR: El nombre solo debe contener letras y espacios.', 1;
+		 
+	END;
+
+	IF @apellido IS NULL OR @apellido LIKE '%[^A-Za-zÁÉÍÓÚÑáéíóúñ ]%'
+	BEGIN
+		THROW 50001, 'ERROR: El apellido solo debe contener letras y espacios.', 1;
+		 
+	END;
+
 
     IF @Email IS NULL OR @Email NOT LIKE '%@%.%'
     BEGIN
-        PRINT 'ERROR: El Email no es válido.';
-        RETURN;
+        THROW 50001, 'ERROR: El Email no es válido.', 1;
     END
 
     IF @FechaNacimiento IS NULL OR @FechaNacimiento > GETDATE()
     BEGIN
-        PRINT 'ERROR: La Fecha de Nacimiento no es válida.';
-        RETURN;
+		DECLARE @msg NVARCHAR(200) = 'ERROR: La Fecha de Nacimiento no es válida. (F_Nac: ' + ISNULL(CAST(@FechaNacimiento AS VARCHAR), 'NULL') + ')';
+		THROW 50001, @msg, 1;
     END
 
     IF @estado NOT IN ('activo', 'inactivo', 'moroso')
     BEGIN
-        PRINT 'ERROR: El estado del socio no es válido. Debe ser "activo", "inactivo" o "moroso".';
-        RETURN;
+        THROW 50001, 'ERROR: El estado del socio no es válido. Debe ser "activo", "inactivo" o "moroso".', 1;
+         
     END
 
     -- Verificar si el ID_socio ya está
     IF EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El ID_socio ya existe, use un ID diferente.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_socio ya existe, use un ID diferente.', 1;
+         
     END
 
     INSERT INTO Persona.Socio (
-        ID_socio, DNI, Email, FechaNacimiento, domicilio, obra_social,
+        ID_socio, DNI,Nombre, Apellido, Email, FechaNacimiento, domicilio, obra_social,
         numObraSocial, telObraSocial, estado, usuario, contrasenia, caducidad_contrasenia
     )
     VALUES (
-        @ID_socio, @DNI, @Email, @FechaNacimiento, @domicilio, @obra_social,
+        @ID_socio, @DNI, @Nombre, @Apellido, @Email, @FechaNacimiento, @domicilio, @obra_social,
         @numObraSocial, @telObraSocial, @estado, @usuario, @contrasenia, @caducidad_contrasenia
     );
 END;
@@ -122,33 +135,33 @@ BEGIN
     -- Verificar si el socio existe
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El socio con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El socio con el ID especificado no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @DNI IS NOT NULL AND (LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'))
     BEGIN
-        PRINT 'ERROR: El DNI debe contener 8 dígitos numéricos.';
-        RETURN;
+        THROW 50001, 'ERROR: El DNI debe contener 8 dígitos numéricos.', 1;
+         
     END
 
     IF @Email IS NOT NULL AND (@Email NOT LIKE '%@%.%')
     BEGIN
-        PRINT 'ERROR: El Email no es válido.';
-        RETURN;
+        THROW 50001, 'ERROR: El Email no es válido.', 1;
+         
     END
 
     IF @FechaNacimiento IS NOT NULL AND (@FechaNacimiento > GETDATE())
     BEGIN
-        PRINT 'ERROR: La Fecha de Nacimiento no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La Fecha de Nacimiento no es válida.', 1;
+         
     END
 
     IF @estado IS NOT NULL AND @estado NOT IN ('activo', 'inactivo', 'moroso')
     BEGIN
-        PRINT 'ERROR: El estado del socio no es válido. Debe ser "activo", "inactivo" o "moroso".';
-        RETURN;
+        THROW 50001, 'ERROR: El estado del socio no es válido. Debe ser "activo", "inactivo" o "moroso".', 1;
+         
     END
 
     UPDATE Persona.Socio
@@ -179,8 +192,8 @@ BEGIN
     -- Verificar si el socio existe
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El socio con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El socio con el ID especificado no existe.', 1;
+         
     END
 
     -- Actualizar el estado a 'inactivo' para simular un borrado lógico
@@ -205,22 +218,22 @@ BEGIN
     -- Validar si el socio existe
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El socio con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El socio con el ID especificado no existe.', 1;
+         
     END
 
     -- Validar formato del teléfono
     IF @Tel IS NULL OR LTRIM(RTRIM(@Tel)) = '' OR NOT (@Tel LIKE '[0-9]%')
     BEGIN
-        PRINT 'ERROR: El número de teléfono no es válido.';
-        RETURN;
+        THROW 50001, 'ERROR: El número de teléfono no es válido.', 1;
+         
     END
 
     -- Verificar si el teléfono ya existe para este socio
     IF EXISTS (SELECT 1 FROM Persona.SocioTelefonos WHERE ID_socio = @ID_socio AND Tel = @Tel)
     BEGIN
-        PRINT 'ERROR: Este número de teléfono ya está registrado para el socio.';
-        RETURN;
+        THROW 50001, 'ERROR: Este número de teléfono ya está registrado para el socio.', 1;
+         
     END
 
     INSERT INTO Persona.SocioTelefonos (ID_socio, Tel)
@@ -240,22 +253,22 @@ BEGIN
     -- Validar si el socio y el teléfono antiguo existen
     IF NOT EXISTS (SELECT 1 FROM Persona.SocioTelefonos WHERE ID_socio = @ID_socio AND Tel = @TelAntiguo)
     BEGIN
-        PRINT 'ERROR: El teléfono antiguo no está registrado para el socio especificado.';
-        RETURN;
+        THROW 50001, 'ERROR: El teléfono antiguo no está registrado para el socio especificado.', 1;
+         
     END
 
     -- Validar formato del nuevo teléfono
     IF @TelNuevo IS NULL OR LTRIM(RTRIM(@TelNuevo)) = '' OR NOT (@TelNuevo LIKE '[0-9]%')
     BEGIN
-        PRINT 'ERROR: El nuevo número de teléfono no es válido.';
-        RETURN;
+        THROW 50001, 'ERROR: El nuevo número de teléfono no es válido.', 1;
+         
     END
 
     -- Verificar si el nuevo teléfono ya existe para este socio (evitar duplicados)
     IF EXISTS (SELECT 1 FROM Persona.SocioTelefonos WHERE ID_socio = @ID_socio AND Tel = @TelNuevo)
     BEGIN
-        PRINT 'ERROR: El nuevo número de teléfono ya está registrado para el socio.';
-        RETURN;
+        THROW 50001, 'ERROR: El nuevo número de teléfono ya está registrado para el socio.', 1;
+         
     END
 
     -- Eliminar el teléfono antiguo y luego insertar el nuevo
@@ -278,8 +291,8 @@ BEGIN
     -- Validar si el teléfono existe para el socio
     IF NOT EXISTS (SELECT 1 FROM Persona.SocioTelefonos WHERE ID_socio = @ID_socio AND Tel = @Tel)
     BEGIN
-        PRINT 'ERROR: El teléfono especificado no existe para el socio.';
-        RETURN;
+        THROW 50001, 'ERROR: El teléfono especificado no existe para el socio.', 1;
+         
     END
 
     DELETE FROM Persona.SocioTelefonos
@@ -301,22 +314,22 @@ BEGIN
     -- Validar si el socio existe
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El socio con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El socio con el ID especificado no existe.', 1;
+         
     END
 
     -- Validar si el teléfono está vacío o es nulo
     IF @Tel IS NULL OR LTRIM(RTRIM(@Tel)) = ''
     BEGIN
-        PRINT 'ERROR: El número de teléfono de emergencia no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El número de teléfono de emergencia no puede estar vacío.', 1;
+         
     END
 
     -- Verificar si el teléfono ya existe para este socio
     IF EXISTS (SELECT 1 FROM Persona.SocioEmergencia WHERE ID_socio = @ID_socio AND Tel = @Tel)
     BEGIN
-        PRINT 'ERROR: Este número de teléfono de emergencia ya está registrado para el socio.';
-        RETURN;
+        THROW 50001, 'ERROR: Este número de teléfono de emergencia ya está registrado para el socio.', 1;
+         
     END
 
     INSERT INTO Persona.SocioEmergencia (ID_socio, Tel)
@@ -336,22 +349,22 @@ BEGIN
     -- Validar si el socio y el teléfono antiguo existen
     IF NOT EXISTS (SELECT 1 FROM Persona.SocioEmergencia WHERE ID_socio = @ID_socio AND Tel = @TelAntiguo)
     BEGIN
-        PRINT 'ERROR: El teléfono de emergencia antiguo no está registrado para el socio especificado.';
-        RETURN;
+        THROW 50001, 'ERROR: El teléfono de emergencia antiguo no está registrado para el socio especificado.', 1;
+         
     END
 
     -- Validar si el nuevo teléfono vacío o es nulo
     IF @TelNuevo IS NULL OR LTRIM(RTRIM(@TelNuevo)) = ''
     BEGIN
-        PRINT 'ERROR: El nuevo número de teléfono de emergencia no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nuevo número de teléfono de emergencia no puede estar vacío.', 1;
+         
     END
 
     -- Verificar si el nuevo teléfono ya existe para este socio
     IF EXISTS (SELECT 1 FROM Persona.SocioEmergencia WHERE ID_socio = @ID_socio AND Tel = @TelNuevo)
     BEGIN
-        PRINT 'ERROR: El nuevo número de teléfono de emergencia ya está registrado para el socio.';
-        RETURN;
+        THROW 50001, 'ERROR: El nuevo número de teléfono de emergencia ya está registrado para el socio.', 1;
+         
     END
 
     -- Eliminar el teléfono antiguo y luego insertar el nuevo
@@ -375,8 +388,8 @@ BEGIN
     -- Validar si el teléfono existe para el socio
     IF NOT EXISTS (SELECT 1 FROM Persona.SocioEmergencia WHERE ID_socio = @ID_socio AND Tel = @Tel)
     BEGIN
-        PRINT 'ERROR: El teléfono de emergencia especificado no existe para el socio.';
-        RETURN;
+        THROW 50001, 'ERROR: El teléfono de emergencia especificado no existe para el socio.', 1;
+         
     END
 
     DELETE FROM Persona.SocioEmergencia
@@ -406,33 +419,33 @@ BEGIN
     -- Validaciones básicas
     IF @DNI IS NULL OR LTRIM(RTRIM(@DNI)) = ''
     BEGIN
-        PRINT 'ERROR: El DNI del invitado no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El DNI del invitado no puede estar vacío.', 1;
+         
     END
 
     IF LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
     BEGIN
-        PRINT 'ERROR: El DNI del invitado debe contener 8 dígitos numéricos.';
-        RETURN;
+        THROW 50001, 'ERROR: El DNI del invitado debe contener 8 dígitos numéricos.', 1;
+         
     END
 
     IF @fecha IS NULL OR @fecha > GETDATE()
     BEGIN
-        PRINT 'ERROR: La Fecha del invitado no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La Fecha del invitado no es válida.', 1;
+         
     END
 
     IF @ID_socio IS NULL OR NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El ID_socio especificado para el invitado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_socio especificado para el invitado no existe.', 1;
+         
     END
 
     -- Verificar si el invitado ya existe para esa fecha y DNI
     IF EXISTS (SELECT 1 FROM Persona.Invitado WHERE DNI = @DNI AND fecha = @fecha)
     BEGIN
-        PRINT 'ERROR: Ya existe un invitado con este DNI para la fecha especificada.';
-        RETURN;
+        THROW 50001, 'ERROR: Ya existe un invitado con este DNI para la fecha especificada.', 1;
+         
     END
 
     INSERT INTO Persona.Invitado (
@@ -461,15 +474,15 @@ BEGIN
     -- Verificar si el invitado existe
     IF NOT EXISTS (SELECT 1 FROM Persona.Invitado WHERE DNI = @DNI AND fecha = @fecha)
     BEGIN
-        PRINT 'ERROR: El invitado con el DNI y la fecha especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El invitado con el DNI y la fecha especificados no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @ID_socio IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El ID_socio especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_socio especificado no existe.', 1;
+         
     END
 
     UPDATE Persona.Invitado
@@ -496,8 +509,8 @@ BEGIN
     -- Verificar si el invitado existe
     IF NOT EXISTS (SELECT 1 FROM Persona.Invitado WHERE DNI = @DNI AND fecha = @fecha)
     BEGIN
-        PRINT 'ERROR: El invitado con el DNI y la fecha especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El invitado con el DNI y la fecha especificados no existe.', 1;
+         
     END
 
     DELETE FROM Persona.Invitado
@@ -520,28 +533,28 @@ BEGIN
     -- Validar que ambos socios existan
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_responsable)
     BEGIN
-        PRINT 'ERROR: El ID_responsable especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_responsable especificado no existe.', 1;
+         
     END
 
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_menor)
     BEGIN
-        PRINT 'ERROR: El ID_menor especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_menor especificado no existe.', 1;
+         
     END
 
     -- Evitar que un socio sea responsable de sí mismo
     IF @ID_responsable = @ID_menor
     BEGIN
-        PRINT 'ERROR: Un socio no puede ser responsable de sí mismo.';
-        RETURN;
+        THROW 50001, 'ERROR: Un socio no puede ser responsable de sí mismo.', 1;
+         
     END
 
     -- Verificar si la relación de responsabilidad ya existe
     IF EXISTS (SELECT 1 FROM Persona.responsabilidad WHERE ID_responsable = @ID_responsable AND ID_menor = @ID_menor)
     BEGIN
-        PRINT 'ERROR: Esta relación de responsabilidad ya existe.';
-        RETURN;
+        THROW 50001, 'ERROR: Esta relación de responsabilidad ya existe.', 1;
+         
     END
 
     INSERT INTO Persona.responsabilidad (ID_responsable, ID_menor)
@@ -560,8 +573,8 @@ BEGIN
     -- Verificar si la relación de responsabilidad existe
     IF NOT EXISTS (SELECT 1 FROM Persona.responsabilidad WHERE ID_responsable = @ID_responsable AND ID_menor = @ID_menor)
     BEGIN
-        PRINT 'ERROR: La relación de responsabilidad especificada no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La relación de responsabilidad especificada no existe.', 1;
+         
     END
 
     DELETE FROM Persona.responsabilidad
@@ -584,15 +597,15 @@ BEGIN
     -- Validaciones básicas
     IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        PRINT 'ERROR: El nombre del rol no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nombre del rol no puede estar vacío.', 1;
+         
     END
 
     -- Verificar si el ID_rol ya existe
     IF EXISTS (SELECT 1 FROM Gestion.rol WHERE ID_rol = @ID_rol)
     BEGIN
-        PRINT 'ERROR: El ID_rol ya existe. Por favor, utilice un ID diferente.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_rol ya existe. Por favor, utilice un ID diferente.', 1;
+         
     END
 
     INSERT INTO Gestion.rol (ID_rol, nombre, descripcion)
@@ -612,15 +625,15 @@ BEGIN
     -- Verificar si el rol existe
     IF NOT EXISTS (SELECT 1 FROM Gestion.rol WHERE ID_rol = @ID_rol)
     BEGIN
-        PRINT 'ERROR: El rol con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El rol con el ID especificado no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        PRINT 'ERROR: El nombre del rol no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nombre del rol no puede estar vacío.', 1;
+         
     END
 
     UPDATE Gestion.rol
@@ -642,15 +655,15 @@ BEGIN
     -- Verificar si el rol existe
     IF NOT EXISTS (SELECT 1 FROM Gestion.rol WHERE ID_rol = @ID_rol)
     BEGIN
-        PRINT 'ERROR: El rol con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El rol con el ID especificado no existe.', 1;
+         
     END
 
     -- Verificar si hay personal asociado a este rol antes de eliminarlo
     IF EXISTS (SELECT 1 FROM Gestion.Personal WHERE ID_rol = @ID_rol)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar el rol porque hay personal asociado a él. Desasocie el personal primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar el rol porque hay personal asociado a él. Desasocie el personal primero.', 1;
+         
     END
 
     DELETE FROM Gestion.rol
@@ -677,52 +690,52 @@ BEGIN
     -- Validaciones básicas
     IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        PRINT 'ERROR: El nombre del personal no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nombre del personal no puede estar vacío.', 1;
+         
     END
 
     IF @apellido IS NULL OR LTRIM(RTRIM(@apellido)) = ''
     BEGIN
-        PRINT 'ERROR: El apellido del personal no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El apellido del personal no puede estar vacío.', 1;
+         
     END
 
     IF @DNI IS NULL OR LTRIM(RTRIM(@DNI)) = ''
     BEGIN
-        PRINT 'ERROR: El DNI del personal no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El DNI del personal no puede estar vacío.', 1;
+         
     END
 
     IF LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
     BEGIN
-        PRINT 'ERROR: El DNI del personal debe contener 8 dígitos numéricos.';
-        RETURN;
+        THROW 50001, 'ERROR: El DNI del personal debe contener 8 dígitos numéricos.', 1;
+         
     END
 
     IF @usuario IS NULL OR LTRIM(RTRIM(@usuario)) = ''
     BEGIN
-        PRINT 'ERROR: El usuario del personal no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El usuario del personal no puede estar vacío.', 1;
+         
     END
 
     IF @contrasenia IS NULL OR LTRIM(RTRIM(@contrasenia)) = ''
     BEGIN
-        PRINT 'ERROR: La contraseña del personal no puede estar vacía.';
-        RETURN;
+        THROW 50001, 'ERROR: La contraseña del personal no puede estar vacía.', 1;
+         
     END
 
     -- Verificar si el ID_personal ya existe
     IF EXISTS (SELECT 1 FROM Gestion.Personal WHERE ID_personal = @ID_personal)
     BEGIN
-        PRINT 'ERROR: El ID_personal ya existe. Por favor, utilice un ID diferente.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_personal ya existe. Por favor, utilice un ID diferente.', 1;
+         
     END
 
     -- Validar que el ID_rol exista
     IF NOT EXISTS (SELECT 1 FROM Gestion.rol WHERE ID_rol = @ID_rol)
     BEGIN
-        PRINT 'ERROR: El ID_rol especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_rol especificado no existe.', 1;
+         
     END
 
     INSERT INTO Gestion.Personal (
@@ -750,21 +763,21 @@ BEGIN
     -- Verificar si el personal existe
     IF NOT EXISTS (SELECT 1 FROM Gestion.Personal WHERE ID_personal = @ID_personal)
     BEGIN
-        PRINT 'ERROR: El personal con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El personal con el ID especificado no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @DNI IS NOT NULL AND (LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'))
     BEGIN
-        PRINT 'ERROR: El DNI debe contener 8 dígitos numéricos.';
-        RETURN;
+        THROW 50001, 'ERROR: El DNI debe contener 8 dígitos numéricos.', 1;
+         
     END
 
     IF @ID_rol IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Gestion.rol WHERE ID_rol = @ID_rol)
     BEGIN
-        PRINT 'ERROR: El ID_rol especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_rol especificado no existe.', 1;
+         
     END
 
     UPDATE Gestion.Personal
@@ -790,8 +803,8 @@ BEGIN
     -- Verificar si el personal existe
     IF NOT EXISTS (SELECT 1 FROM Gestion.Personal WHERE ID_personal = @ID_personal)
     BEGIN
-        PRINT 'ERROR: El personal con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El personal con el ID especificado no existe.', 1;
+         
     END
 
     DELETE FROM Gestion.Personal
@@ -815,21 +828,21 @@ BEGIN
     -- Validaciones básicas
     IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        PRINT 'ERROR: El nombre de la membresía no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nombre de la membresía no puede estar vacío.', 1;
+         
     END
 
     IF @costo IS NULL OR @costo < 0
     BEGIN
-        PRINT 'ERROR: El costo de la membresía debe ser un valor positivo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo de la membresía debe ser un valor positivo.', 1;
+         
     END
 
     -- Verificar si el ID_tipo ya existe
     IF EXISTS (SELECT 1 FROM Actividades.Membresia WHERE ID_tipo = @ID_tipo)
     BEGIN
-        PRINT 'ERROR: El ID_tipo de membresía ya existe. Por favor, utilice un ID diferente.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_tipo de membresía ya existe. Por favor, utilice un ID diferente.', 1;
+         
     END
 
     INSERT INTO Actividades.Membresia (ID_tipo, nombre, descripcion, costo)
@@ -850,21 +863,21 @@ BEGIN
     -- Verificar si la membresía existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Membresia WHERE ID_tipo = @ID_tipo)
     BEGIN
-        PRINT 'ERROR: La membresía con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La membresía con el ID especificado no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        PRINT 'ERROR: El nombre de la membresía no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nombre de la membresía no puede estar vacío.', 1;
+         
     END
 
     IF @costo IS NOT NULL AND @costo < 0
     BEGIN
-        PRINT 'ERROR: El costo de la membresía debe ser un valor positivo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo de la membresía debe ser un valor positivo.', 1;
+         
     END
 
     UPDATE Actividades.Membresia
@@ -887,15 +900,15 @@ BEGIN
     -- Verificar si la membresía existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Membresia WHERE ID_tipo = @ID_tipo)
     BEGIN
-        PRINT 'ERROR: La membresía con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La membresía con el ID especificado no existe.', 1;
+         
     END
 
     -- Verificar si hay inscripciones asociadas a esta membresía
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Socio WHERE ID_membresia = @ID_tipo)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar la membresía porque hay inscripciones de socios asociadas a ella. Desasocie las inscripciones primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar la membresía porque hay inscripciones de socios asociadas a ella. Desasocie las inscripciones primero.', 1;
+         
     END
 
     DELETE FROM Actividades.Membresia
@@ -921,34 +934,34 @@ BEGIN
     -- Validaciones básicas
     IF @fecha_inicio IS NULL OR @fecha_inicio > GETDATE()
     BEGIN
-        PRINT 'ERROR: La fecha de inicio de la inscripción no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripción no es válida.', 1;
+         
     END
 
     IF @fecha_baja IS NOT NULL AND @fecha_baja < @fecha_inicio
     BEGIN
-        PRINT 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.', 1;
+         
     END
 
     -- Validar si el socio y la membresía existen
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El ID_socio especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_socio especificado no existe.', 1;
+         
     END
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.Membresia WHERE ID_tipo = @ID_membresia)
     BEGIN
-        PRINT 'ERROR: El ID_membresia especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_membresia especificado no existe.', 1;
+         
     END
 
     -- Verificar si la inscripción ya existe para este socio
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Socio WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        PRINT 'ERROR: Ya existe una inscripción con este ID para el socio especificado.';
-        RETURN;
+        THROW 50001, 'ERROR: Ya existe una inscripción con este ID para el socio especificado.', 1;
+         
     END
 
     INSERT INTO Actividades.Inscripcion_Socio (
@@ -974,27 +987,27 @@ BEGIN
     -- Verificar si la inscripción existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Socio WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        PRINT 'ERROR: La inscripción de socio con el ID_socio e ID_inscripcion especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La inscripción de socio con el ID_socio e ID_inscripcion especificados no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @fecha_inicio IS NOT NULL AND @fecha_inicio > GETDATE()
     BEGIN
-        PRINT 'ERROR: La fecha de inicio de la inscripción no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripción no es válida.', 1;
+         
     END
 
     IF @fecha_baja IS NOT NULL AND @fecha_inicio IS NOT NULL AND @fecha_baja < @fecha_inicio
     BEGIN
-        PRINT 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.', 1;
+         
     END
 
     IF @ID_membresia IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Actividades.Membresia WHERE ID_tipo = @ID_membresia)
     BEGIN
-        PRINT 'ERROR: El ID_membresia especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_membresia especificado no existe.', 1;
+         
     END
 
     UPDATE Actividades.Inscripcion_Socio
@@ -1018,8 +1031,8 @@ BEGIN
     -- Verificar si la inscripción existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Socio WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        PRINT 'ERROR: La inscripción de socio con el ID_socio e ID_inscripcion especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La inscripción de socio con el ID_socio e ID_inscripcion especificados no existe.', 1;
+         
     END
 
     DELETE FROM Actividades.Inscripcion_Socio
@@ -1042,21 +1055,21 @@ BEGIN
     -- Validaciones básicas
     IF @Nombre IS NULL OR LTRIM(RTRIM(@Nombre)) = ''
     BEGIN
-        PRINT 'ERROR: El nombre de la actividad deportiva no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nombre de la actividad deportiva no puede estar vacío.', 1;
+         
     END
 
     IF @costo IS NULL OR @costo < 0
     BEGIN
-        PRINT 'ERROR: El costo de la actividad deportiva debe ser un valor positivo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo de la actividad deportiva debe ser un valor positivo.', 1;
+         
     END
 
     -- Verificar si el ID_actividad ya existe
     IF EXISTS (SELECT 1 FROM Actividades.Actividades_Deportivas WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: El ID_actividad ya existe para Actividades_Deportivas. Por favor, utilice un ID diferente.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_actividad ya existe para Actividades_Deportivas. Por favor, utilice un ID diferente.', 1;
+         
     END
 
     INSERT INTO Actividades.Actividades_Deportivas (ID_actividad, Nombre, costo)
@@ -1076,21 +1089,21 @@ BEGIN
     -- Verificar si la actividad existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Deportivas WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: La actividad deportiva con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La actividad deportiva con el ID especificado no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @Nombre IS NOT NULL AND LTRIM(RTRIM(@Nombre)) = ''
     BEGIN
-        PRINT 'ERROR: El nombre de la actividad deportiva no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nombre de la actividad deportiva no puede estar vacío.', 1;
+         
     END
 
     IF @costo IS NOT NULL AND @costo < 0
     BEGIN
-        PRINT 'ERROR: El costo de la actividad deportiva debe ser un valor positivo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo de la actividad deportiva debe ser un valor positivo.', 1;
+         
     END
 
     UPDATE Actividades.Actividades_Deportivas
@@ -1112,21 +1125,21 @@ BEGIN
     -- Verificar si la actividad existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Deportivas WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: La actividad deportiva con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La actividad deportiva con el ID especificado no existe.', 1;
+         
     END
 
     -- Verificar si hay turnos o inscripciones asociadas a esta actividad
     IF EXISTS (SELECT 1 FROM Actividades.AcDep_turnos WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar la actividad deportiva porque tiene turnos asociados. Elimine los turnos primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar la actividad deportiva porque tiene turnos asociados. Elimine los turnos primero.', 1;
+         
     END
 
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Deportiva WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar la actividad deportiva porque tiene inscripciones asociadas. Elimine las inscripciones primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar la actividad deportiva porque tiene inscripciones asociadas. Elimine las inscripciones primero.', 1;
+         
     END
 
     DELETE FROM Actividades.Actividades_Deportivas
@@ -1151,27 +1164,27 @@ BEGIN
     -- Validaciones básicas
     IF @Nombre IS NULL OR LTRIM(RTRIM(@Nombre)) = ''
     BEGIN
-        PRINT 'ERROR: El nombre de la actividad "otra" no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nombre de la actividad "otra" no puede estar vacío.', 1;
+         
     END
 
     IF @costo_socio IS NULL OR @costo_socio < 0
     BEGIN
-        PRINT 'ERROR: El costo para socios debe ser un valor positivo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo para socios debe ser un valor positivo.', 1;
+         
     END
 
     IF @costo_invitados IS NULL OR @costo_invitados < 0
     BEGIN
-        PRINT 'ERROR: El costo para invitados debe ser un valor positivo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo para invitados debe ser un valor positivo.', 1;
+         
     END
 
     -- Verificar si el ID_actividad ya existe
     IF EXISTS (SELECT 1 FROM Actividades.Actividades_Otras WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: El ID_actividad ya existe para Actividades_Otras. Por favor, utilice un ID diferente.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_actividad ya existe para Actividades_Otras. Por favor, utilice un ID diferente.', 1;
+         
     END
 
     INSERT INTO Actividades.Actividades_Otras (ID_actividad, Nombre, costo_socio, costo_invitados)
@@ -1192,27 +1205,27 @@ BEGIN
     -- Verificar si la actividad existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Otras WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: La actividad "otra" con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La actividad "otra" con el ID especificado no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @Nombre IS NOT NULL AND LTRIM(RTRIM(@Nombre)) = ''
     BEGIN
-        PRINT 'ERROR: El nombre de la actividad "otra" no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nombre de la actividad "otra" no puede estar vacío.', 1;
+         
     END
 
     IF @costo_socio IS NOT NULL AND @costo_socio < 0
     BEGIN
-        PRINT 'ERROR: El costo para socios debe ser un valor positivo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo para socios debe ser un valor positivo.', 1;
+         
     END
 
     IF @costo_invitados IS NOT NULL AND @costo_invitados < 0
     BEGIN
-        PRINT 'ERROR: El costo para invitados debe ser un valor positivo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo para invitados debe ser un valor positivo.', 1;
+         
     END
 
     UPDATE Actividades.Actividades_Otras
@@ -1235,21 +1248,21 @@ BEGIN
     -- Verificar si la actividad existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Otras WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: La actividad "otra" con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La actividad "otra" con el ID especificado no existe.', 1;
+         
     END
 
     -- Verificar si hay turnos o inscripciones asociadas a esta actividad
     IF EXISTS (SELECT 1 FROM Actividades.AcOtra_turnos WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar la actividad "otra" porque tiene turnos asociados. Elimine los turnos primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar la actividad "otra" porque tiene turnos asociados. Elimine los turnos primero.', 1;
+         
     END
 
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Otra WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar la actividad "otra" porque tiene inscripciones asociadas. Elimine las inscripciones primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar la actividad "otra" porque tiene inscripciones asociadas. Elimine las inscripciones primero.', 1;
+         
     END
 
     DELETE FROM Actividades.Actividades_Otras
@@ -1273,22 +1286,22 @@ BEGIN
     -- Validaciones básicas
     IF @turno IS NULL OR LTRIM(RTRIM(@turno)) = ''
     BEGIN
-        PRINT 'ERROR: El turno no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El turno no puede estar vacío.', 1;
+         
     END
 
     -- Validar que la actividad deportiva exista
     IF NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Deportivas WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: La ID_actividad especificada no existe en Actividades_Deportivas.';
-        RETURN;
+        THROW 50001, 'ERROR: La ID_actividad especificada no existe en Actividades_Deportivas.', 1;
+         
     END
 
     -- Verificar si el turno ya existe para esta actividad
     IF EXISTS (SELECT 1 FROM Actividades.AcDep_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_turno)
     BEGIN
-        PRINT 'ERROR: Ya existe un turno con este ID para la actividad deportiva especificada.';
-        RETURN;
+        THROW 50001, 'ERROR: Ya existe un turno con este ID para la actividad deportiva especificada.', 1;
+         
     END
 
     INSERT INTO Actividades.AcDep_turnos (ID_actividad, ID_turno, turno)
@@ -1308,15 +1321,15 @@ BEGIN
     -- Verificar si el turno existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.AcDep_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_turno)
     BEGIN
-        PRINT 'ERROR: El turno con el ID_actividad e ID_turno especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El turno con el ID_actividad e ID_turno especificados no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @turno IS NOT NULL AND LTRIM(RTRIM(@turno)) = ''
     BEGIN
-        PRINT 'ERROR: El turno no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El turno no puede estar vacío.', 1;
+         
     END
 
     UPDATE Actividades.AcDep_turnos
@@ -1338,15 +1351,15 @@ BEGIN
     -- Verificar si el turno existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.AcDep_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_turno)
     BEGIN
-        PRINT 'ERROR: El turno con el ID_actividad e ID_turno especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El turno con el ID_actividad e ID_turno especificados no existe.', 1;
+         
     END
 
     -- Verificar si hay inscripciones asociadas a este turno
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Deportiva WHERE ID_actividad = @ID_actividad AND ID_Turno = @ID_turno)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar el turno porque hay inscripciones asociadas a él. Elimine las inscripciones primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar el turno porque hay inscripciones asociadas a él. Elimine las inscripciones primero.', 1;
+         
     END
 
     DELETE FROM Actividades.AcDep_turnos
@@ -1370,22 +1383,22 @@ BEGIN
     -- Validaciones básicas
     IF @turno IS NULL OR LTRIM(RTRIM(@turno)) = ''
     BEGIN
-        PRINT 'ERROR: El turno no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El turno no puede estar vacío.', 1;
+         
     END
 
     -- Validar que la actividad "otra" exista
     IF NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Otras WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: La ID_actividad especificada no existe en Actividades_Otras.';
-        RETURN;
+        THROW 50001, 'ERROR: La ID_actividad especificada no existe en Actividades_Otras.', 1;
+         
     END
 
     -- Verificar si el turno ya existe para esta actividad
     IF EXISTS (SELECT 1 FROM Actividades.AcOtra_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_turno)
     BEGIN
-        PRINT 'ERROR: Ya existe un turno con este ID para la actividad "otra" especificada.';
-        RETURN;
+        THROW 50001, 'ERROR: Ya existe un turno con este ID para la actividad "otra" especificada.', 1;
+         
     END
 
     INSERT INTO Actividades.AcOtra_turnos (ID_actividad, ID_turno, turno)
@@ -1405,15 +1418,15 @@ BEGIN
     -- Verificar si el turno existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.AcOtra_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_turno)
     BEGIN
-        PRINT 'ERROR: El turno con el ID_actividad e ID_turno especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El turno con el ID_actividad e ID_turno especificados no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @turno IS NOT NULL AND LTRIM(RTRIM(@turno)) = ''
     BEGIN
-        PRINT 'ERROR: El turno no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El turno no puede estar vacío.', 1;
+         
     END
 
     UPDATE Actividades.AcOtra_turnos
@@ -1435,15 +1448,15 @@ BEGIN
     -- Verificar si el turno existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.AcOtra_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_turno)
     BEGIN
-        PRINT 'ERROR: El turno con el ID_actividad e ID_turno especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El turno con el ID_actividad e ID_turno especificados no existe.', 1;
+         
     END
 
     -- Verificar si hay inscripciones asociadas a este turno
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Otra WHERE ID_actividad = @ID_actividad AND ID_Turno = @ID_turno)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar el turno porque hay inscripciones asociadas a él. Elimine las inscripciones primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar el turno porque hay inscripciones asociadas a él. Elimine las inscripciones primero.', 1;
+         
     END
 
     DELETE FROM Actividades.AcOtra_turnos
@@ -1470,34 +1483,34 @@ BEGIN
     -- Validaciones básicas
     IF @fecha_inicio IS NULL OR @fecha_inicio > GETDATE()
     BEGIN
-        PRINT 'ERROR: La fecha de inicio de la inscripción no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripción no es válida.', 1;
+         
     END
 
     IF @fecha_baja IS NOT NULL AND @fecha_baja < @fecha_inicio
     BEGIN
-        PRINT 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.', 1;
+         
     END
 
     -- Validar si el socio, actividad y turno existen
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El ID_socio especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_socio especificado no existe.', 1;
+         
     END
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.AcDep_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_Turno)
     BEGIN
-        PRINT 'ERROR: La combinación de ID_actividad e ID_Turno no existe en Actividades.AcDep_turnos.';
-        RETURN;
+        THROW 50001, 'ERROR: La combinación de ID_actividad e ID_Turno no existe en Actividades.AcDep_turnos.', 1;
+         
     END
 
     -- Verificar si la inscripción ya existe para este socio
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Deportiva WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        PRINT 'ERROR: Ya existe una inscripción con este ID para el socio especificado.';
-        RETURN;
+        THROW 50001, 'ERROR: Ya existe una inscripción con este ID para el socio especificado.', 1;
+         
     END
 
     INSERT INTO Actividades.Inscripcion_Deportiva (
@@ -1524,32 +1537,32 @@ BEGIN
     -- Verificar si la inscripción existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Deportiva WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        PRINT 'ERROR: La inscripción deportiva con el ID_socio e ID_inscripcion especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La inscripción deportiva con el ID_socio e ID_inscripcion especificados no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @fecha_inicio IS NOT NULL AND @fecha_inicio > GETDATE()
     BEGIN
-        PRINT 'ERROR: La fecha de inicio de la inscripción no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripción no es válida.', 1;
+         
     END
 
     IF @fecha_baja IS NOT NULL AND @fecha_inicio IS NOT NULL AND @fecha_baja < @fecha_inicio
     BEGIN
-        PRINT 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.', 1;
+         
     END
 
     IF @ID_actividad IS NOT NULL AND @ID_Turno IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Actividades.AcDep_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_Turno)
     BEGIN
-        PRINT 'ERROR: La combinación de ID_actividad e ID_Turno no existe en Actividades.AcDep_turnos.';
-        RETURN;
+        THROW 50001, 'ERROR: La combinación de ID_actividad e ID_Turno no existe en Actividades.AcDep_turnos.', 1;
+         
     END
     ELSE IF @ID_actividad IS NOT NULL AND @ID_Turno IS NULL AND NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Deportivas WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: El ID_actividad especificado no existe en Actividades.Actividades_Deportivas.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_actividad especificado no existe en Actividades.Actividades_Deportivas.', 1;
+         
     END
 
     UPDATE Actividades.Inscripcion_Deportiva
@@ -1574,8 +1587,8 @@ BEGIN
     -- Verificar si la inscripción existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Deportiva WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        PRINT 'ERROR: La inscripción deportiva con el ID_socio e ID_inscripcion especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La inscripción deportiva con el ID_socio e ID_inscripcion especificados no existe.', 1;
+         
     END
 
     DELETE FROM Actividades.Inscripcion_Deportiva
@@ -1602,34 +1615,34 @@ BEGIN
     -- Validaciones básicas
     IF @fecha_inicio IS NULL OR @fecha_inicio > GETDATE()
     BEGIN
-        PRINT 'ERROR: La fecha de inicio de la inscripción no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripción no es válida.', 1;
+         
     END
 
     IF @fecha_baja IS NOT NULL AND @fecha_baja < @fecha_inicio
     BEGIN
-        PRINT 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.', 1;
+         
     END
 
     -- Validar si el socio, actividad y turno existen
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El ID_socio especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_socio especificado no existe.', 1;
+         
     END
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.AcOtra_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_Turno)
     BEGIN
-        PRINT 'ERROR: La combinación de ID_actividad e ID_Turno no existe en Actividades.AcOtra_turnos.';
-        RETURN;
+        THROW 50001, 'ERROR: La combinación de ID_actividad e ID_Turno no existe en Actividades.AcOtra_turnos.', 1;
+         
     END
 
     -- Verificar si la inscripción ya existe para este socio
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Otra WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        PRINT 'ERROR: Ya existe una inscripción con este ID para el socio especificado.';
-        RETURN;
+        THROW 50001, 'ERROR: Ya existe una inscripción con este ID para el socio especificado.', 1;
+         
     END
 
     INSERT INTO Actividades.Inscripcion_Otra (
@@ -1656,32 +1669,32 @@ BEGIN
     -- Verificar si la inscripción existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Otra WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        PRINT 'ERROR: La inscripción de actividad "otra" con el ID_socio e ID_inscripcion especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La inscripción de actividad "otra" con el ID_socio e ID_inscripcion especificados no existe.', 1;
+         
     END
 
     -- Validaciones para los parámetros que se actualizan
     IF @fecha_inicio IS NOT NULL AND @fecha_inicio > GETDATE()
     BEGIN
-        PRINT 'ERROR: La fecha de inicio de la inscripción no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripción no es válida.', 1;
+         
     END
 
     IF @fecha_baja IS NOT NULL AND @fecha_inicio IS NOT NULL AND @fecha_baja < @fecha_inicio
     BEGIN
-        PRINT 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de baja no puede ser anterior a la fecha de inicio.', 1;
+         
     END
 
     IF @ID_actividad IS NOT NULL AND @ID_Turno IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Actividades.AcOtra_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_Turno)
     BEGIN
-        PRINT 'ERROR: La combinación de ID_actividad e ID_Turno no existe en Actividades.AcOtra_turnos.';
-        RETURN;
+        THROW 50001, 'ERROR: La combinación de ID_actividad e ID_Turno no existe en Actividades.AcOtra_turnos.', 1;
+         
     END
     ELSE IF @ID_actividad IS NOT NULL AND @ID_Turno IS NULL AND NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Otras WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: El ID_actividad especificado no existe en Actividades.Actividades_Otras.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_actividad especificado no existe en Actividades.Actividades_Otras.', 1;
+         
     END
 
 
@@ -1707,8 +1720,8 @@ BEGIN
     -- Verificar si la inscripción existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Otra WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        PRINT 'ERROR: La inscripción de actividad "otra" con el ID_socio e ID_inscripcion especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La inscripción de actividad "otra" con el ID_socio e ID_inscripcion especificados no existe.', 1;
+         
     END
 
     DELETE FROM Actividades.Inscripcion_Otra
@@ -1731,14 +1744,14 @@ BEGIN
 
     IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        PRINT 'ERROR: El nombre del medio de pago no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nombre del medio de pago no puede estar vacío.', 1;
+         
     END
 
     IF EXISTS (SELECT 1 FROM Finansas.MedioDePago WHERE ID_banco = @ID_banco)
     BEGIN
-        PRINT 'ERROR: El ID_banco ya existe. Por favor, utilice un ID diferente.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_banco ya existe. Por favor, utilice un ID diferente.', 1;
+         
     END
 
     INSERT INTO Finansas.MedioDePago (ID_banco, nombre)
@@ -1756,14 +1769,14 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.MedioDePago WHERE ID_banco = @ID_banco)
     BEGIN
-        PRINT 'ERROR: El medio de pago con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El medio de pago con el ID especificado no existe.', 1;
+         
     END
 
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        PRINT 'ERROR: El nombre del medio de pago no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El nombre del medio de pago no puede estar vacío.', 1;
+         
     END
 
     UPDATE Finansas.MedioDePago
@@ -1781,15 +1794,15 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.MedioDePago WHERE ID_banco = @ID_banco)
     BEGIN
-        PRINT 'ERROR: El medio de pago con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El medio de pago con el ID especificado no existe.', 1;
+         
     END
 
     -- Verificar si hay cuentas asociadas a este medio de pago
     IF EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_banco = @ID_banco)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar el medio de pago porque hay cuentas asociadas a él. Desasocie las cuentas primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar el medio de pago porque hay cuentas asociadas a él. Desasocie las cuentas primero.', 1;
+         
     END
 
     DELETE FROM Finansas.MedioDePago
@@ -1814,38 +1827,38 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El ID_socio especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_socio especificado no existe.', 1;
+         
     END
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.MedioDePago WHERE ID_banco = @ID_banco)
     BEGIN
-        PRINT 'ERROR: El ID_banco especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_banco especificado no existe.', 1;
+         
     END
 
     IF @credenciales IS NULL OR LTRIM(RTRIM(@credenciales)) = ''
     BEGIN
-        PRINT 'ERROR: Las credenciales no pueden estar vacías.';
-        RETURN;
+        THROW 50001, 'ERROR: Las credenciales no pueden estar vacías.', 1;
+         
     END
 
     IF @tipo NOT IN ('credito', 'debito')
     BEGIN
-        PRINT 'ERROR: El tipo de cuenta no es válido. Debe ser "credito" o "debito".';
-        RETURN;
+        THROW 50001, 'ERROR: El tipo de cuenta no es válido. Debe ser "credito" o "debito".', 1;
+         
     END
 
     IF @SaldoAFavor IS NULL OR @SaldoAFavor < 0
     BEGIN
-        PRINT 'ERROR: El saldo a favor debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El saldo a favor debe ser un valor no negativo.', 1;
+         
     END
 
     IF EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: Ya existe una cuenta con este ID para el socio especificado.';
-        RETURN;
+        THROW 50001, 'ERROR: Ya existe una cuenta con este ID para el socio especificado.', 1;
+         
     END
 
     INSERT INTO Finansas.Cuenta (
@@ -1872,32 +1885,32 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: La cuenta con el ID_socio e ID_cuenta especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La cuenta con el ID_socio e ID_cuenta especificados no existe.', 1;
+         
     END
 
     IF @ID_banco IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Finansas.MedioDePago WHERE ID_banco = @ID_banco)
     BEGIN
-        PRINT 'ERROR: El ID_banco especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_banco especificado no existe.', 1;
+         
     END
 
     IF @credenciales IS NOT NULL AND LTRIM(RTRIM(@credenciales)) = ''
     BEGIN
-        PRINT 'ERROR: Las credenciales no pueden estar vacías.';
-        RETURN;
+        THROW 50001, 'ERROR: Las credenciales no pueden estar vacías.', 1;
+         
     END
 
     IF @tipo IS NOT NULL AND @tipo NOT IN ('credito', 'debito')
     BEGIN
-        PRINT 'ERROR: El tipo de cuenta no es válido. Debe ser "credito" o "debito".';
-        RETURN;
+        THROW 50001, 'ERROR: El tipo de cuenta no es válido. Debe ser "credito" o "debito".', 1;
+         
     END
 
     IF @SaldoAFavor IS NOT NULL AND @SaldoAFavor < 0
     BEGIN
-        PRINT 'ERROR: El saldo a favor debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El saldo a favor debe ser un valor no negativo.', 1;
+         
     END
 
     UPDATE Finansas.Cuenta
@@ -1922,20 +1935,20 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: La cuenta con el ID_socio e ID_cuenta especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La cuenta con el ID_socio e ID_cuenta especificados no existe.', 1;
+         
     END
 
     -- Verificar si hay cobros o reembolsos asociados a esta cuenta
     IF EXISTS (SELECT 1 FROM Finansas.cobro WHERE ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar la cuenta porque tiene cobros asociados. Elimine los cobros primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar la cuenta porque tiene cobros asociados. Elimine los cobros primero.', 1;
+         
     END
     IF EXISTS (SELECT 1 FROM Finansas.reembolso WHERE ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar la cuenta porque tiene reembolsos asociados. Elimine los reembolsos primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar la cuenta porque tiene reembolsos asociados. Elimine los reembolsos primero.', 1;
+         
     END
 
     DELETE FROM Finansas.Cuenta
@@ -1965,62 +1978,62 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El ID_socio especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_socio especificado no existe.', 1;
+
     END
 
     IF @Tipo NOT IN ('socio', 'deporte', 'otra')
     BEGIN
-        PRINT 'ERROR: El tipo de cuota no es válido. Debe ser "socio", "deporte" o "otra".';
-        RETURN;
+        THROW 50001, 'ERROR: El tipo de cuota no es válido. Debe ser "socio", "deporte" o "otra".', 1;
+         
     END
 
     IF @fecha IS NULL OR @fecha > GETDATE()
     BEGIN
-        PRINT 'ERROR: La fecha de la cuota no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de la cuota no es válida.', 1;
+         
     END
 
     IF @Vencimiento1 IS NULL OR @Vencimiento1 < @fecha
     BEGIN
-        PRINT 'ERROR: La primera fecha de vencimiento no es válida (no puede ser anterior a la fecha de la cuota).';
-        RETURN;
+        THROW 50001, 'ERROR: La primera fecha de vencimiento no es válida (no puede ser anterior a la fecha de la cuota).', 1;
+         
     END
 
     IF @Vencimiento2 IS NULL OR @Vencimiento2 < @Vencimiento1
     BEGIN
-        PRINT 'ERROR: La segunda fecha de vencimiento no es válida (no puede ser anterior a la primera).';
-        RETURN;
+        THROW 50001, 'ERROR: La segunda fecha de vencimiento no es válida (no puede ser anterior a la primera).', 1;
+         
     END
 
     IF @costo IS NULL OR @costo < 0
     BEGIN
-        PRINT 'ERROR: El costo de la cuota debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo de la cuota debe ser un valor no negativo.', 1;
+         
     END
 
     IF @recargo IS NULL OR @recargo < 0
     BEGIN
-        PRINT 'ERROR: El recargo de la cuota debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El recargo de la cuota debe ser un valor no negativo.', 1;
+         
     END
 
     IF @descuento IS NULL OR @descuento < 0
     BEGIN
-        PRINT 'ERROR: El descuento de la cuota debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El descuento de la cuota debe ser un valor no negativo.', 1;
+         
     END
 
     IF @Estado NOT IN ('impago', 'vencido1', 'vencido2', 'pago')
     BEGIN
-        PRINT 'ERROR: El estado de la cuota no es válido. Debe ser "impago", "vencido1", "vencido2" o "pago".';
-        RETURN;
+        THROW 50001, 'ERROR: El estado de la cuota no es válido. Debe ser "impago", "vencido1", "vencido2" o "pago".', 1;
+         
     END
 
     IF EXISTS (SELECT 1 FROM Finansas.Cuota WHERE ID_cuota = @ID_cuota)
     BEGIN
-        PRINT 'ERROR: El ID_cuota ya existe. Por favor, utilice un ID diferente.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_cuota ya existe. Por favor, utilice un ID diferente.', 1;
+         
     END
 
     INSERT INTO Finansas.Cuota (
@@ -2054,62 +2067,62 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.Cuota WHERE ID_cuota = @ID_cuota)
     BEGIN
-        PRINT 'ERROR: La cuota con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La cuota con el ID especificado no existe.', 1;
+         
     END
 
     IF @ID_socio IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El ID_socio especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_socio especificado no existe.', 1;
+         
     END
 
     IF @Tipo IS NOT NULL AND @Tipo NOT IN ('socio', 'deporte', 'otra')
     BEGIN
-        PRINT 'ERROR: El tipo de cuota no es válido. Debe ser "socio", "deporte" o "otra".';
-        RETURN;
+        THROW 50001, 'ERROR: El tipo de cuota no es válido. Debe ser "socio", "deporte" o "otra".', 1;
+         
     END
 
     IF @fecha IS NOT NULL AND @fecha > GETDATE()
     BEGIN
-        PRINT 'ERROR: La fecha de la cuota no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha de la cuota no es válida.', 1;
+         
     END
 
     IF @Vencimiento1 IS NOT NULL AND @fecha IS NOT NULL AND @Vencimiento1 < @fecha
     BEGIN
-        PRINT 'ERROR: La primera fecha de vencimiento no es válida (no puede ser anterior a la fecha de la cuota).';
-        RETURN;
+        THROW 50001, 'ERROR: La primera fecha de vencimiento no es válida (no puede ser anterior a la fecha de la cuota).', 1;
+         
     END
 
     IF @Vencimiento2 IS NOT NULL AND @Vencimiento1 IS NOT NULL AND @Vencimiento2 < @Vencimiento1
     BEGIN
-        PRINT 'ERROR: La segunda fecha de vencimiento no es válida (no puede ser anterior a la primera).';
-        RETURN;
+        THROW 50001, 'ERROR: La segunda fecha de vencimiento no es válida (no puede ser anterior a la primera).', 1;
+         
     END
 
     IF @costo IS NOT NULL AND @costo < 0
     BEGIN
-        PRINT 'ERROR: El costo de la cuota debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo de la cuota debe ser un valor no negativo.', 1;
+         
     END
 
     IF @recargo IS NOT NULL AND @recargo < 0
     BEGIN
-        PRINT 'ERROR: El recargo de la cuota debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El recargo de la cuota debe ser un valor no negativo.', 1;
+         
     END
 
     IF @descuento IS NOT NULL AND @descuento < 0
     BEGIN
-        PRINT 'ERROR: El descuento de la cuota debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El descuento de la cuota debe ser un valor no negativo.', 1;
+         
     END
 
     IF @Estado IS NOT NULL AND @Estado NOT IN ('impago', 'vencido1', 'vencido2', 'pago')
     BEGIN
-        PRINT 'ERROR: El estado de la cuota no es válido. Debe ser "impago", "vencido1", "vencido2" o "pago".';
-        RETURN;
+        THROW 50001, 'ERROR: El estado de la cuota no es válido. Debe ser "impago", "vencido1", "vencido2" o "pago".', 1;
+         
     END
 
     UPDATE Finansas.Cuota
@@ -2139,15 +2152,15 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.Cuota WHERE ID_cuota = @ID_cuota)
     BEGIN
-        PRINT 'ERROR: La cuota con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La cuota con el ID especificado no existe.', 1;
+         
     END
 
     -- Verificar si hay detalles de factura asociados a esta cuota
     IF EXISTS (SELECT 1 FROM Finansas.detalle_factura WHERE ID_cuota = @ID_cuota)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar la cuota porque hay detalles de factura asociados a ella. Elimine los detalles de factura primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar la cuota porque hay detalles de factura asociados a ella. Elimine los detalles de factura primero.', 1;
+         
     END
 
     DELETE FROM Finansas.Cuota
@@ -2171,44 +2184,44 @@ BEGIN
 
     IF @DNI IS NULL OR LTRIM(RTRIM(@DNI)) = ''
     BEGIN
-        PRINT 'ERROR: El DNI de la factura no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El DNI de la factura no puede estar vacío.', 1;
+         
     END
 
     IF LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
     BEGIN
-        PRINT 'ERROR: El DNI de la factura debe contener 8 dígitos numéricos.';
-        RETURN;
+        THROW 50001, 'ERROR: El DNI de la factura debe contener 8 dígitos numéricos.', 1;
+         
     END
 
     IF @CUIT IS NULL OR LTRIM(RTRIM(@CUIT)) = ''
     BEGIN
-        PRINT 'ERROR: El CUIT de la factura no puede estar vacío.';
-        RETURN;
+        THROW 50001, 'ERROR: El CUIT de la factura no puede estar vacío.', 1;
+         
     END
 
     IF LEN(@CUIT) != 11 OR NOT (@CUIT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]')
     BEGIN
-        PRINT 'ERROR: El CUIT de la factura debe contener 11 dígitos numéricos con guiones (XX-XXXXXXXX-X).';
-        RETURN;
+        THROW 50001, 'ERROR: El CUIT de la factura debe contener 11 dígitos numéricos con guiones (XX-XXXXXXXX-X).', 1;
+         
     END
 
     IF @FechaYHora IS NULL OR @FechaYHora > GETDATE()
     BEGIN
-        PRINT 'ERROR: La Fecha y Hora de la factura no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La Fecha y Hora de la factura no es válida.', 1;
+         
     END
 
     IF @costo IS NULL OR @costo < 0
     BEGIN
-        PRINT 'ERROR: El costo de la factura debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo de la factura debe ser un valor no negativo.', 1;
+         
     END
 
     IF EXISTS (SELECT 1 FROM Finansas.factura WHERE ID_factura = @ID_factura)
     BEGIN
-        PRINT 'ERROR: El ID_factura ya existe. Por favor, utilice un ID diferente.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_factura ya existe. Por favor, utilice un ID diferente.', 1;
+         
     END
 
     INSERT INTO Finansas.factura (ID_factura, DNI, CUIT, FechaYHora, costo, estado)
@@ -2230,32 +2243,32 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.factura WHERE ID_factura = @ID_factura)
     BEGIN
-        PRINT 'ERROR: La factura con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La factura con el ID especificado no existe.', 1;
+         
     END
 
     IF @DNI IS NOT NULL AND (LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'))
     BEGIN
-        PRINT 'ERROR: El DNI de la factura debe contener 8 dígitos numéricos.';
-        RETURN;
+        THROW 50001, 'ERROR: El DNI de la factura debe contener 8 dígitos numéricos.', 1;
+         
     END
 
     IF @CUIT IS NOT NULL AND (LEN(@CUIT) != 11 OR NOT (@CUIT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'))
     BEGIN
-        PRINT 'ERROR: El CUIT de la factura debe contener 11 dígitos numéricos con guiones (XX-XXXXXXXX-X).';
-        RETURN;
+        THROW 50001, 'ERROR: El CUIT de la factura debe contener 11 dígitos numéricos con guiones (XX-XXXXXXXX-X).', 1;
+         
     END
 
     IF @FechaYHora IS NOT NULL AND @FechaYHora > GETDATE()
     BEGIN
-        PRINT 'ERROR: La Fecha y Hora de la factura no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La Fecha y Hora de la factura no es válida.', 1;
+         
     END
 
     IF @costo IS NOT NULL AND @costo < 0
     BEGIN
-        PRINT 'ERROR: El costo de la factura debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo de la factura debe ser un valor no negativo.', 1;
+         
     END
 
     UPDATE Finansas.factura
@@ -2279,25 +2292,25 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.factura WHERE ID_factura = @ID_factura)
     BEGIN
-        PRINT 'ERROR: La factura con el ID especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La factura con el ID especificado no existe.', 1;
+         
     END
 
     -- Verificar si hay detalles de factura, cobros o reembolsos asociados
     IF EXISTS (SELECT 1 FROM Finansas.detalle_factura WHERE ID_factura = @ID_factura)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar la factura porque tiene detalles de factura asociados. Elimine los detalles primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar la factura porque tiene detalles de factura asociados. Elimine los detalles primero.', 1;
+         
     END
     IF EXISTS (SELECT 1 FROM Finansas.cobro WHERE ID_factura = @ID_factura)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar la factura porque tiene cobros asociados. Elimine los cobros primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar la factura porque tiene cobros asociados. Elimine los cobros primero.', 1;
+         
     END
     IF EXISTS (SELECT 1 FROM Finansas.reembolso WHERE ID_factura = @ID_factura)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar la factura porque tiene reembolsos asociados. Elimine los reembolsos primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar la factura porque tiene reembolsos asociados. Elimine los reembolsos primero.', 1;
+         
     END
 
     DELETE FROM Finansas.factura
@@ -2322,44 +2335,44 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.factura WHERE ID_factura = @ID_factura)
     BEGIN
-        PRINT 'ERROR: El ID_factura especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_factura especificado no existe.', 1;
+         
     END
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.Cuota WHERE ID_cuota = @ID_cuota)
     BEGIN
-        PRINT 'ERROR: El ID_cuota especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_cuota especificado no existe.', 1;
+         
     END
 
     IF @Tipo NOT IN ('socio', 'deporte', 'otra')
     BEGIN
-        PRINT 'ERROR: El tipo de detalle no es válido. Debe ser "socio", "deporte" o "otra".';
-        RETURN;
+        THROW 50001, 'ERROR: El tipo de detalle no es válido. Debe ser "socio", "deporte" o "otra".', 1;
+         
     END
 
     IF @costo IS NULL OR @costo < 0
     BEGIN
-        PRINT 'ERROR: El costo del detalle de factura debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo del detalle de factura debe ser un valor no negativo.', 1;
+         
     END
 
     IF @recargo IS NULL OR @recargo < 0
     BEGIN
-        PRINT 'ERROR: El recargo del detalle de factura debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El recargo del detalle de factura debe ser un valor no negativo.', 1;
+         
     END
 
     IF @descuento IS NULL OR @descuento < 0
     BEGIN
-        PRINT 'ERROR: El descuento del detalle de factura debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El descuento del detalle de factura debe ser un valor no negativo.', 1;
+         
     END
 
     IF EXISTS (SELECT 1 FROM Finansas.detalle_factura WHERE ID_factura = @ID_factura AND ID_cuota = @ID_cuota)
     BEGIN
-        PRINT 'ERROR: Ya existe un detalle de factura con esta combinación de ID_factura e ID_cuota.';
-        RETURN;
+        THROW 50001, 'ERROR: Ya existe un detalle de factura con esta combinación de ID_factura e ID_cuota.', 1;
+         
     END
 
     INSERT INTO Finansas.detalle_factura (
@@ -2386,32 +2399,32 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.detalle_factura WHERE ID_factura = @ID_factura AND ID_cuota = @ID_cuota)
     BEGIN
-        PRINT 'ERROR: El detalle de factura con la combinación de ID_factura e ID_cuota especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El detalle de factura con la combinación de ID_factura e ID_cuota especificados no existe.', 1;
+         
     END
 
     IF @Tipo IS NOT NULL AND @Tipo NOT IN ('socio', 'deporte', 'otra')
     BEGIN
-        PRINT 'ERROR: El tipo de detalle no es válido. Debe ser "socio", "deporte" o "otra".';
-        RETURN;
+        THROW 50001, 'ERROR: El tipo de detalle no es válido. Debe ser "socio", "deporte" o "otra".', 1;
+         
     END
 
     IF @costo IS NOT NULL AND @costo < 0
     BEGIN
-        PRINT 'ERROR: El costo del detalle de factura debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo del detalle de factura debe ser un valor no negativo.', 1;
+         
     END
 
     IF @recargo IS NOT NULL AND @recargo < 0
     BEGIN
-        PRINT 'ERROR: El recargo del detalle de factura debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El recargo del detalle de factura debe ser un valor no negativo.', 1;
+         
     END
 
     IF @descuento IS NOT NULL AND @descuento < 0
     BEGIN
-        PRINT 'ERROR: El descuento del detalle de factura debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El descuento del detalle de factura debe ser un valor no negativo.', 1;
+         
     END
 
     UPDATE Finansas.detalle_factura
@@ -2436,8 +2449,8 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.detalle_factura WHERE ID_factura = @ID_factura AND ID_cuota = @ID_cuota)
     BEGIN
-        PRINT 'ERROR: El detalle de factura con la combinación de ID_factura e ID_cuota especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El detalle de factura con la combinación de ID_factura e ID_cuota especificados no existe.', 1;
+         
     END
 
     DELETE FROM Finansas.detalle_factura
@@ -2460,26 +2473,26 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.factura WHERE ID_factura = @ID_factura)
     BEGIN
-        PRINT 'ERROR: El ID_factura especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_factura especificado no existe.', 1;
+         
     END
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: La combinación de ID_socio e ID_cuenta no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La combinación de ID_socio e ID_cuenta no existe.', 1;
+         
     END
 
     IF @Costo IS NULL OR @Costo < 0
     BEGIN
-        PRINT 'ERROR: El costo del cobro debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo del cobro debe ser un valor no negativo.', 1;
+         
     END
 
     IF EXISTS (SELECT 1 FROM Finansas.cobro WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: Ya existe un cobro con esta combinación de ID_factura, ID_socio e ID_cuenta.';
-        RETURN;
+        THROW 50001, 'ERROR: Ya existe un cobro con esta combinación de ID_factura, ID_socio e ID_cuenta.', 1;
+         
     END
 
     INSERT INTO Finansas.cobro (ID_factura, ID_socio, ID_cuenta, Costo, Estado)
@@ -2500,14 +2513,14 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.cobro WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: El cobro con la combinación de ID_factura, ID_socio e ID_cuenta especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El cobro con la combinación de ID_factura, ID_socio e ID_cuenta especificados no existe.', 1;
+         
     END
 
     IF @Costo IS NOT NULL AND @Costo < 0
     BEGIN
-        PRINT 'ERROR: El costo del cobro debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo del cobro debe ser un valor no negativo.', 1;
+         
     END
 
     UPDATE Finansas.cobro
@@ -2530,8 +2543,8 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.cobro WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: El cobro con la combinación de ID_factura, ID_socio e ID_cuenta especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El cobro con la combinación de ID_factura, ID_socio e ID_cuenta especificados no existe.', 1;
+         
     END
 
     DELETE FROM Finansas.cobro
@@ -2554,26 +2567,26 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.factura WHERE ID_factura = @ID_factura)
     BEGIN
-        PRINT 'ERROR: El ID_factura especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_factura especificado no existe.', 1;
+         
     END
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: La combinación de ID_socio e ID_cuenta no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La combinación de ID_socio e ID_cuenta no existe.', 1;
+         
     END
 
     IF @Costo IS NULL OR @Costo < 0
     BEGIN
-        PRINT 'ERROR: El costo del reembolso debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo del reembolso debe ser un valor no negativo.', 1;
+         
     END
 
     IF EXISTS (SELECT 1 FROM Finansas.reembolso WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: Ya existe un reembolso con esta combinación de ID_factura, ID_socio e ID_cuenta.';
-        RETURN;
+        THROW 50001, 'ERROR: Ya existe un reembolso con esta combinación de ID_factura, ID_socio e ID_cuenta.', 1;
+         
     END
 
     INSERT INTO Finansas.reembolso (ID_factura, ID_socio, ID_cuenta, Costo, Estado)
@@ -2594,14 +2607,14 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.reembolso WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: El reembolso con la combinación de ID_factura, ID_socio e ID_cuenta especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El reembolso con la combinación de ID_factura, ID_socio e ID_cuenta especificados no existe.', 1;
+         
     END
 
     IF @Costo IS NOT NULL AND @Costo < 0
     BEGIN
-        PRINT 'ERROR: El costo del reembolso debe ser un valor no negativo.';
-        RETURN;
+        THROW 50001, 'ERROR: El costo del reembolso debe ser un valor no negativo.', 1;
+         
     END
 
     UPDATE Finansas.reembolso
@@ -2624,8 +2637,8 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.reembolso WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        PRINT 'ERROR: El reembolso con la combinación de ID_factura, ID_socio e ID_cuenta especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El reembolso con la combinación de ID_factura, ID_socio e ID_cuenta especificados no existe.', 1;
+         
     END
 
     DELETE FROM Finansas.reembolso
@@ -2649,14 +2662,14 @@ BEGIN
 
     IF @fecha IS NULL OR @fecha > GETDATE() -- O si permite fechas futuras, ajustar esta validación
     BEGIN
-        PRINT 'ERROR: La fecha no es válida.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha no es válida.', 1;
+         
     END
 
     IF EXISTS (SELECT 1 FROM Asistencia.dias WHERE fecha = @fecha)
     BEGIN
-        PRINT 'ERROR: La fecha ya existe. Por favor, utilice una fecha diferente.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha ya existe. Por favor, utilice una fecha diferente.', 1;
+         
     END
 
     INSERT INTO Asistencia.dias (fecha, climaMalo)
@@ -2674,8 +2687,8 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Asistencia.dias WHERE fecha = @fecha)
     BEGIN
-        PRINT 'ERROR: La fecha especificada no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha especificada no existe.', 1;
+         
     END
 
     UPDATE Asistencia.dias
@@ -2693,15 +2706,15 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Asistencia.dias WHERE fecha = @fecha)
     BEGIN
-        PRINT 'ERROR: La fecha especificada no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: La fecha especificada no existe.', 1;
+         
     END
 
     -- Verificar si hay asistencias asociadas a este día
     IF EXISTS (SELECT 1 FROM Asistencia.asistencia WHERE Fecha = @fecha)
     BEGIN
-        PRINT 'ERROR: No se puede eliminar el día porque hay registros de asistencia asociados. Elimine los registros de asistencia primero.';
-        RETURN;
+        THROW 50001, 'ERROR: No se puede eliminar el día porque hay registros de asistencia asociados. Elimine los registros de asistencia primero.', 1;
+         
     END
 
     DELETE FROM Asistencia.dias
@@ -2724,27 +2737,27 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
-        PRINT 'ERROR: El ID_socio especificado no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_socio especificado no existe.', 1;
+         
     END
     
     IF NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Deportivas WHERE ID_actividad = @ID_actividad) AND
        NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Otras WHERE ID_actividad = @ID_actividad)
     BEGIN
-        PRINT 'ERROR: El ID_actividad especificado no existe en Actividades_Deportivas ni Actividades_Otras.';
-        RETURN;
+        THROW 50001, 'ERROR: El ID_actividad especificado no existe en Actividades_Deportivas ni Actividades_Otras.', 1;
+         
     END
 
     IF NOT EXISTS (SELECT 1 FROM Asistencia.dias WHERE fecha = @Fecha)
     BEGIN
-        PRINT 'ERROR: La Fecha del día no existe en la tabla de Asistencia.dias.';
-        RETURN;
+        THROW 50001, 'ERROR: La Fecha del día no existe en la tabla de Asistencia.dias.', 1;
+         
     END
 
     IF EXISTS (SELECT 1 FROM Asistencia.asistencia WHERE ID_socio = @ID_socio AND ID_actividad = @ID_actividad AND ID_turno = @ID_turno AND Fecha = @Fecha)
     BEGIN
-        PRINT 'ERROR: Ya existe un registro de asistencia con esta combinación para el socio en esta actividad, turno y fecha.';
-        RETURN;
+        THROW 50001, 'ERROR: Ya existe un registro de asistencia con esta combinación para el socio en esta actividad, turno y fecha.', 1;
+         
     END
 
     INSERT INTO Asistencia.asistencia (ID_socio, ID_actividad, ID_turno, Fecha, Presentismo)
@@ -2765,8 +2778,8 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Asistencia.asistencia WHERE ID_socio = @ID_socio AND ID_actividad = @ID_actividad AND ID_turno = @ID_turno AND Fecha = @Fecha)
     BEGIN
-        PRINT 'ERROR: El registro de asistencia con la combinación de ID_socio, ID_actividad, ID_turno y Fecha especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El registro de asistencia con la combinación de ID_socio, ID_actividad, ID_turno y Fecha especificados no existe.', 1;
+         
     END
 
     UPDATE Asistencia.asistencia
@@ -2787,8 +2800,8 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Asistencia.asistencia WHERE ID_socio = @ID_socio AND ID_actividad = @ID_actividad AND ID_turno = @ID_turno AND Fecha = @Fecha)
     BEGIN
-        PRINT 'ERROR: El registro de asistencia con la combinación de ID_socio, ID_actividad, ID_turno y Fecha especificados no existe.';
-        RETURN;
+        THROW 50001, 'ERROR: El registro de asistencia con la combinación de ID_socio, ID_actividad, ID_turno y Fecha especificados no existe.', 1;
+         
     END
 
     DELETE FROM Asistencia.asistencia
