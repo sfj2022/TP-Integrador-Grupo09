@@ -52,6 +52,35 @@ SET NOCOUNT ON;
     EXEC sp_executesql @Temp_Lectura_XLSX;
 END
 
+GO 
+
+CREATE OR ALTER FUNCTION dbo.ConvertirNumeroATextoPlano
+(
+    @ValorInput SQL_VARIANT
+)
+RETURNS VARCHAR(100)
+AS
+BEGIN
+    DECLARE @Resultado VARCHAR(100);
+    DECLARE @Texto NVARCHAR(100) = CAST(@ValorInput AS NVARCHAR(100));
+
+    -- Si contiene notación científica, lo tratamos
+    IF @Texto LIKE '%E+%' OR @Texto LIKE '%e+%'
+    BEGIN
+        DECLARE @BigNum DECIMAL(38,0);
+        SET @BigNum = TRY_CAST(@ValorInput AS DECIMAL(38,0));
+        SET @Resultado = CAST(@BigNum AS VARCHAR(100));
+    END
+    ELSE
+    BEGIN
+        SET @Resultado = @Texto;
+    END
+
+    RETURN @Resultado;
+END;
+
+
+
 /*
 EXEC ImportarExcel 'C:\data\Datos socios.xlsx', 'Tarifas';
 SELECT * FROM ##Excel_Hoja;
@@ -111,11 +140,12 @@ SELECT * FROM ##Tabla_Subtabla_3;
 */
 
 GO
+DELETE FROM Persona.SocioTelefonos;
+DELETE FROM Persona.SocioEmergencia;
 DELETE FROM Persona.Socio;
 GO
 --SP que importa los datos de la primer hoja "Responsables de Pago" 
-CREATE OR ALTER PROCEDURE ProcesarHoja1 (
-    @RutaArchivo VARCHAR(255))
+CREATE OR ALTER PROCEDURE ProcesarHoja1 (@RutaArchivo VARCHAR(255))
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -142,7 +172,8 @@ DECLARE
 @contrasenia VARCHAR(32),
 @caducidad_contrasenia DATE,
 @fila INT = 1,
-@total INT;
+@total INT,
+@telTrans VARCHAR(30);
 
 SELECT @total = COUNT(*) FROM ##Excel_Hoja;
 
@@ -151,9 +182,6 @@ SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
 INTO #ExcelNumerado
 FROM ##Excel_Hoja;
 
-SELECT COLUMN_NAME
-FROM tempdb.INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_NAME LIKE '#ExcelNumerado%';
  WHILE @fila <= @total
  BEGIN
 	BEGIN TRY
@@ -167,17 +195,34 @@ WHERE TABLE_NAME LIKE '#ExcelNumerado%';
             @domicilio = 'Sin domicilio', 
             @NombObraSocial = [ Nombre de la obra social o prepaga],
             @NroSocioObraSocial = [nro# de socio obra social/prepaga ],
-			@TelCont = [ teléfono de contacto],
-            @TelEmerg1 = CONVERT(VARCHAR(50),[ teléfono de contacto emergencia]),
-			@TelEmerg2 = CONVERT(VARCHAR(50),[ teléfono de contacto emergencia]),
-            @estado = 'activo',
+			@TelCont = dbo.ConvertirNumeroATextoPlano([ teléfono de contacto]),
+            @TelEmerg1 = dbo.ConvertirNumeroATextoPlano([ teléfono de contacto emergencia]),
+			@TelEmerg2 = dbo.ConvertirNumeroATextoPlano([teléfono de contacto de emergencia ]),
+			@estado = 'activo',
             @usuario = LEFT(LOWER(LEFT(@Email, CHARINDEX('@', @Email) - 1)), 16),
             @contrasenia = '12345678', 
             @caducidad_contrasenia = '31-12-2099'
 			FROM #ExcelNumerado
 			WHERE nro_fila = @fila;
 
-	EXEC InsertarSocio @ID_socio = @ID_socio, @DNI = @DNI, @Nombre = @nombre, @Apellido = @apellido, @Email = @Email, @FechaNacimiento = @FNac, @domicilio = @domicilio, @obra_social = @NombObraSocial, @numObraSocial = @NroSocioObraSocial, @telObraSocial = @TelCont, @estado = @estado, @usuario = @usuario, @contrasenia = @contrasenia, @caducidad_contrasenia = @caducidad_contrasenia;
+	EXEC InsertarSocio @ID_socio = @ID_socio, @DNI = @DNI, @Nombre = @nombre, @Apellido = @apellido, @Email = @Email, @FechaNacimiento = @FNac, @domicilio = @domicilio, @obra_social = @NombObraSocial, @numObraSocial = @NroSocioObraSocial, @telObraSocial = '-', @estado = @estado, @usuario = @usuario, @contrasenia = @contrasenia, @caducidad_contrasenia = @caducidad_contrasenia;
+	
+	IF @TelCont IS NOT NULL
+		EXEC InsertarSocioTelefono @ID_socio = @ID_socio, @Tel = @TelCont;
+
+    -- SET @telTrans = CAST(CAST(@TelEmerg1 AS DECIMAL(38, 0)) AS VARCHAR(100));
+       SET @telTrans = dbo.ConvertirNumeroATextoPlano(@TelEmerg1)
+    
+
+
+
+		select @telTrans as teltransformado, @TelEmerg1 as TelEmerg
+	--IF @TelEmerg1 IS NOT NULL
+	--	EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg1;
+
+	--IF @TelEmerg2 IS NOT NULL
+	--	EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg2;
+
 
 	 END TRY
         BEGIN CATCH
@@ -191,9 +236,22 @@ WHERE TABLE_NAME LIKE '#ExcelNumerado%';
 END
 
 GO
---EXEC ProcesarHoja1 'C:\data\Datos socios.xlsx';
+/*
+SELECT 
+    [ teléfono de contacto],
+    SQL_VARIANT_PROPERTY([ teléfono de contacto], 'BaseType') AS Tipo,
+    CAST([ teléfono de contacto] AS VARCHAR(100)) AS ComoTexto,
+    dbo.ConvertirNumeroATextoPlano([ teléfono de contacto]) AS ConvertidoPlano
+FROM ##Excel_Hoja
+*/
+/*
 
---Select * from Persona.Socio
+EXEC ProcesarHoja1 'C:\data\Datos socios.xlsx';
+
+Select * from Persona.Socio
+Select * from Persona.SocioTelefonos
+Select * from Persona.SocioEmergencia
+*/
 GO
 --SP que importa los datos de la segunda hoja "Grupo Familiar" 
 CREATE OR ALTER PROCEDURE ProcesarHoja2 (

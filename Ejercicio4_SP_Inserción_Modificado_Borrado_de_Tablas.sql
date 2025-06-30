@@ -317,7 +317,7 @@ BEGIN
         THROW 50001, 'ERROR: El socio con el ID especificado no existe.', 1;
          
     END
-
+	select @Tel as telDespues
     -- Validar si el teléfono está vacío o es nulo
     IF @Tel IS NULL OR LTRIM(RTRIM(@Tel)) = ''
     BEGIN
