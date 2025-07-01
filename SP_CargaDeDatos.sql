@@ -349,11 +349,10 @@ END
 --select * from Persona.Socio where ID_socio = 4144
 
 GO
+
 EXEC ProcesarHoja2 'C:\data\Datos socios.xlsx';
 
-
-
-
+GO
 --SP que importa los datos de la tercer hoja "pago cuotas" 
 CREATE OR ALTER PROCEDURE ProcesarHoja3 (
     @RutaArchivo VARCHAR(255))
@@ -398,7 +397,8 @@ WHILE @fila <= @total
 		WHERE nro_fila = @fila;
 
 		SET @DNI = (SELECT DNI FROM Persona.Socio WHERE ID_Socio = @ID_Socio);
-		SET @CUIT = '20-' + @DNI + '-3';
+		SET @CUIT = '20-' + CAST(@DNI AS VARCHAR) + '-3';
+				
 		exec InsertarFactura @ID_factura=NULL, @DNI=@DNI, @CUIT = @CUIT, @FechaYHora = @Fecha,@costo = @valor, @estado = true;
 
 		IF NOT EXISTS ( SELECT 1 FROM Finansas.Cuenta WHERE ID_Socio = @ID_Socio)
@@ -409,9 +409,6 @@ WHILE @fila <= @total
 		SELECT @ID_Cuenta = ID_Cuenta FROM Finansas.Cuenta WHERE ID_Socio = @ID_Socio;
 		
 		SELECT @ID_Factura = MAX(ID_factura) FROM Finansas.factura WHERE DNI = @DNI AND CUIT = @CUIT AND FechaYHora = @Fecha;
-
-
-		
 
 		Exec InsertarCobro @ID_factura=@ID_Factura ,@ID_Cobro=@ID_Pago, @ID_socio=@ID_Socio, @Costo=@valor, @Medio_Pago=@Medio_Pago, @fecha=@Fecha, @Estado = true, @ID_cuenta= @ID_Cuenta;
 
@@ -426,7 +423,11 @@ WHILE @fila <= @total
 
 END
 GO
+
+
 EXEC ProcesarHoja3 'C:\data\Datos socios.xlsx';
+
+
 
 GO
 --SP que importa los datos de la cuarta hoja "Tarifas" 
@@ -435,9 +436,125 @@ CREATE OR ALTER PROCEDURE ProcesarHoja4 (
 AS
 BEGIN
 DECLARE @NombreHoja VARCHAR(20)='Tarifas';
+EXEC ImportarExcel @RutaArchivo, @NombreHoja;
+
+EXEC SepararTablaTemporalEnTres '##Excel_Hoja' , 1, 6, /*Rango 1*/ 9, 11,/*Rango 2*/ 15, 25;/*Rango 3*/
+/*
+-- Consultás las nuevas tablas:
+SELECT * FROM ##Tabla_Subtabla_1;
+SELECT * FROM ##Tabla_Subtabla_2;
+SELECT * FROM ##Tabla_Subtabla_3;
+*/
+Exec ProcesarSubTabla1;
+Exec ProcesarSubTabla2;
+Exec ProcesarSubTabla3;
 
 
 END
+
+GO
+
+CREATE OR ALTER PROCEDURE ProcesarSubTabla1 --[Actividad], [Valor por mes], [Vigente hasta]
+AS
+BEGIN
+SET NOCOUNT ON;
+SET DATEFORMAT DMY;
+
+DECLARE 
+@actividad Varchar(30),
+@valor decimal(10,2),
+@fech_vigencia date,
+@fila INT = 1,
+@total INT;
+
+SELECT @total = COUNT(*) FROM ##Tabla_Subtabla_1;
+SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #SubtablaNumerado
+FROM ##Tabla_Subtabla_1;
+
+WHILE @fila <= @total
+ BEGIN
+		BEGIN TRY
+		SELECT
+		@actividad=[Actividad],
+		@valor = TRY_CAST([Valor por mes] AS DECIMAL(10,2)),
+		@fech_vigencia = TRY_CAST([Vigente hasta] AS DATE)
+		FROM #SubtablaNumerado
+		WHERE nro_fila = @fila;
+
+		exec InsertarActividadDeportiva @ID_actividad=NULL,@Nombre=@actividad,@costo=@valor;
+
+		 END TRY
+        BEGIN CATCH
+           PRINT 'Error al procesar el la actividad ' + CAST(@fila AS VARCHAR) + ' (actividad: ' + ISNULL(CAST(@actividad AS VARCHAR), 'NULL') + ERROR_MESSAGE();
+
+        END CATCH;
+
+	SET @fila += 1;
+	END
+select * from Actividades.Actividades_Deportivas
+--delete Actividades.Actividades_Deportivas
+END
+--SELECT * FROM ##Tabla_Subtabla_1;
+
+GO
+
+CREATE OR ALTER PROCEDURE ProcesarSubTabla2 --[Categoria socio], [Valor cuota], [Vigente hasta]
+AS
+BEGIN
+--SELECT * FROM ##Tabla_Subtabla_2;
+
+
+SET NOCOUNT ON;
+SET DATEFORMAT DMY;
+
+DECLARE 
+@CatSocio Varchar(30),
+@valorCuota decimal(10,2),
+@fech_vigencia date,
+@fila INT = 1,
+@total INT;
+
+SELECT @total = COUNT(*) FROM ##Tabla_Subtabla_2;
+SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #SubtablaNumerado
+FROM ##Tabla_Subtabla_2;
+
+WHILE @fila <= @total
+ BEGIN
+		BEGIN TRY
+		SELECT
+		@CatSocio=[Actividad],
+		@valorCuota = TRY_CAST([Valor por mes] AS DECIMAL(10,2)),
+		@fech_vigencia = TRY_CAST([Vigente hasta] AS DATE)
+		FROM #SubtablaNumerado
+		WHERE nro_fila = @fila;
+
+		exec InsertarMembresia @ID_tipo=NULL,@Nombre=@CatSocio,@costo=@valorCuota, @descripcion=' ';
+
+		 END TRY
+        BEGIN CATCH
+           PRINT 'Error al procesar el la membresia ' + CAST(@fila AS VARCHAR) + ' (categoria: ' + ISNULL(CAST(@CatSocio AS VARCHAR), 'NULL ') + ERROR_MESSAGE();
+
+        END CATCH;
+
+	SET @fila += 1;
+	END
+select * from Actividades.Membresia
+--delete Actividades.Membresia
+END
+GO
+
+CREATE OR ALTER PROCEDURE ProcesarSubTabla3 
+AS
+BEGIN
+SELECT * FROM ##Tabla_Subtabla_3;
+END
+
+GO
+
+
+EXEC ProcesarHoja4 'C:\data\Datos socios.xlsx';
 /* --para ver el nombre de las columnas
 EXEC ImportarExcel 'C:\data\Datos socios.xlsx', 'presentismo_actividades';
 DECLARE @ColumnList NVARCHAR(MAX) = '';
@@ -447,8 +564,6 @@ FROM tempdb.sys.columns
 WHERE object_id = OBJECT_ID('tempdb..##Excel_Hoja');
 
 PRINT @ColumnList;
-
-GO
 */
 GO
 --SP que importa los datos de la quinta hoja "presentismo_actividades" 
@@ -456,141 +571,95 @@ CREATE OR ALTER PROCEDURE ProcesarHoja5 ( --[Nro de Socio], [Actividad], [fecha 
     @RutaArchivo VARCHAR(255))
 AS
 BEGIN
-DECLARE @NombreHoja VARCHAR(20)='presentismo_actividades';
+DECLARE @NombreHoja VARCHAR(25)='presentismo_actividades';
+SET NOCOUNT ON;
+	SET DATEFORMAT DMY;
+	EXEC ImportarExcel @RutaArchivo, @NombreHoja;
 
+	DECLARE
+@ID_socio INT,
+@actividad VARCHAR(30),
+@FechaAsist DATE,
+@Asistencia VARCHAR(2),
+@Profesor VARCHAR(30),
+@id_actividad INT,
+@id_turno INT,
+@presentismo BIT,
+@fila INT = 1,
+@total INT;
+SELECT @total = COUNT(*) FROM ##Excel_Hoja;
+-- Crear tabla temporal con numeración
+SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #ExcelNumerado
+FROM ##Excel_Hoja;
+WHILE @fila <= @total
+ BEGIN
+	BEGIN TRY
+		SELECT
+			@ID_socio = TRY_CAST(REPLACE([Nro de Socio], 'SN-', '') AS INT),
+            @actividad = [Actividad],
+			@Asistencia = [Asistencia],
+            @Profesor = [Profesor],
+            @FechaAsist = TRY_CAST([fecha de asistencia] AS DATE)
+			FROM #ExcelNumerado
+			WHERE nro_fila = @fila;
+
+			IF @Asistencia = 'P' OR @Asistencia = 'J'
+			SET @presentismo=1;
+			else 
+			SET @presentismo=0;
+
+			--ACTIVIDAD YA INCERTADA EN HOJA 4
+			select TOP 1 @id_actividad = ID_actividad from Actividades.Actividades_Deportivas where Nombre=@actividad
+			
+
+
+			Exec InsertarAcDepTurno @ID_actividad=@id_actividad, @id_turno = null, @turno='M';
+
+			Select TOP 1 @id_turno = ID_turno from Actividades.AcDep_turnos where ID_actividad=@id_actividad and turno='M';
+
+			EXEC InsertarInscripcionDeportiva @ID_socio=@ID_socio, @ID_inscripcion=NULL, @ID_actividad=@id_actividad,@ID_Turno=@id_turno, @fecha_inicio = '1/1/2025';
+
+			Exec InsertarAsistencia @ID_socio=@ID_socio,@ID_actividad=@id_actividad,@ID_turno=@id_turno,@Fecha=@FechaAsist,@Presentismo=@presentismo;
+
+
+
+		END TRY
+        BEGIN CATCH
+           PRINT 'Error al procesar la asistencia ' + CAST(@fila AS VARCHAR) + ' (ID socio: ' + ISNULL(CAST(@ID_socio AS VARCHAR), 'NULL') + ', fecha: ' + ISNULL(CONVERT(VARCHAR, @FechaAsist, 103), 'NULL') + '): ' + ERROR_MESSAGE();
+
+        END CATCH;
+
+	SET @fila += 1;
+	END
 
 END
 
-
-
-/*
 GO
-CREATE OR ALTER PROCEDURE CargarDataset (@archivo VARCHAR(100))
+EXEC ProcesarHoja5 'C:\data\Datos socios.xlsx';
+--select * from Asistencia.asistencia
+
+GO
+CREATE OR ALTER PROCEDURE VerColumnasTablaTemporal
+    @NombreTabla NVARCHAR(128)
 AS
 BEGIN
-	
-	-- para que no de error de formato cuando agarra la fecha
-	SET DATEFORMAT DMY;
+    DECLARE @ColumnList NVARCHAR(MAX) = '';
 
-	-- tabla como la de kaggle
-	CREATE TABLE tabla_temporal (
-		Id_propiedad INT,
-		Nombre_propiedad NVARCHAR(1000),
-		Id_usuario INT,
-		Nombre_usuario NVARCHAR(100),
-		Localidad NVARCHAR(100),
-		Latitud FLOAT,
-		Longitud FLOAT,
-		Tipo_de_propiedad NVARCHAR(100),
-		Precio_por_noche FLOAT,
-		Noches_minimas INT,
-		Numero_de_reviews INT,
-		Ultima_review DATE,
-		Reviews_mensuales FLOAT,
-		Cantidad_de_publicaciones INT,
-		Disponibilidad_365 INT
-	);
+    SELECT @ColumnList = STRING_AGG('[' + c.name + ']', ', ')
+    FROM tempdb.sys.columns c
+    INNER JOIN tempdb.sys.objects o ON c.object_id = o.object_id
+    WHERE o.name LIKE '%' + REPLACE(@NombreTabla, '#', '') + '%';
 
+    PRINT @ColumnList;
+END
 
-	-- esto esta hecho de esta forma porque BULK INSERT no admite variables en el FROM, asi que hay que hacer esto raro
-	DECLARE @bulk NVARCHAR(MAX);
-	-- declaro una variable con el query que no hay que tocar mucho porque se rompe facil
-	SET @bulk = 'BULK INSERT tabla_temporal
-	FROM ''' +  @archivo + '''
-	 WITH (
-		FIRSTROW = 2,
-		FIELDTERMINATOR = '','',
-		ROWTERMINATOR = ''\n'',
-		FORMAT = ''CSV'',
-		FIELDQUOTE = ''"''
-	);';
+GO
+/*
+EXEC VerColumnasTablaTemporal '##Tabla_Subtabla_2';
 
-	-- y la ejecuto como si fuera in stored procedure
-	EXEC (@bulk);
+EXEC ImportarExcel 'C:\data\Datos socios.xlsx', 'presentismo_actividades';
+Select * from ##Excel_Hoja
+EXEC VerColumnasTablaTemporal '##Excel_Hoja';
 
-	-- Lleno localidad con los nombres y los "CP" distintos encontrados en el dataset
-	INSERT INTO Localidad (Nombre)
-	SELECT DISTINCT tabla_temporal.Localidad FROM tabla_temporal;
-
-	-- Lleno los tipos con los tipos de propiedad distintos encontrados en el dataset
-	INSERT INTO Tipo_de_propiedad (Descripcion)
-	SELECT DISTINCT tabla_temporal.Tipo_de_propiedad
-	FROM tabla_temporal;
-
-	INSERT INTO Categoria (Id_categoria, Nombre)
-	VALUES (1, 'Anfitrion');
-	INSERT INTO Categoria (Id_categoria, Nombre)
-	VALUES (2, 'SuperAnfitrion');
-
-	-- Creo una tabla temporal con id, nombre y cantidad de reviews
-	CREATE TABLE #Usuario_reviews (
-		Id_usuario INT,
-		Nombre_usuario NVARCHAR(100),
-		Reviews_totales INT
-	);
-
-	-- La lleno con el total de reviews hechas a propiedades cada usuario
-	INSERT INTO #Usuario_reviews
-	SELECT Id_usuario, Nombre_usuario, SUM(Numero_de_reviews) AS reviews
-	FROM tabla_temporal
-	GROUP BY Id_usuario, Nombre_usuario;
-
-	-- Obtengo el promedio de reviews
-	DECLARE @promedio_reviews TINYINT;
-	SET @promedio_reviews = (SELECT AVG(Reviews_totales) FROM #Usuario_reviews);
-
-	-- Si el total de reviews es mayor al promedio de reviews la categoria es 2, si no 1
-	INSERT INTO Usuario (Id_usuario, Nombre, Contrasenia, Id_categoria)
-	SELECT 
-		Id_usuario,
-		Nombre_usuario,
-		'P4ssW@rd',
-		CASE
-			WHEN Reviews_totales > @promedio_reviews THEN 2
-			ELSE 1
-		END
-	FROM #Usuario_reviews
-	WHERE Nombre_usuario IS NOT NULL;
-
-	DROP TABLE #Usuario_reviews;
-
-	-- anterior, sin categoria
-	--INSERT INTO Usuario (Id_usuario, Nombre)
-	--SELECT DISTINCT
-	--	tabla_temporal.Id_usuario,
-	--	tabla_temporal.Nombre_usuario
-	--FROM tabla_temporal
-	--WHERE tabla_temporal.Nombre_usuario IS NOT NULL;
-
-	-- Lleno propiedad con las del dataset y los foreign keys de usuario, localidad y tipo_de_propiedad ya cargados
-	INSERT INTO Propiedad (
-		Id_propiedad,
-		Nombre,
-		Noches_minimas,
-		Precio_por_noche,
-		Latitud,
-		Longitud,
-		Id_usuario,
-		Id_tipo_de_propiedad,
-		CP
-	)
-	SELECT
-		tabla_temporal.Id_propiedad,
-		tabla_temporal.Nombre_propiedad,
-		tabla_temporal.Noches_minimas,
-		tabla_temporal.Precio_por_noche,
-		tabla_temporal.Latitud,
-		tabla_temporal.Longitud,
-		tabla_temporal.Id_usuario,
-		Tipo_de_propiedad.Id_tipo_de_propiedad,
-		Localidad.CP
-	FROM tabla_temporal
-	INNER JOIN Localidad
-	ON Localidad.Nombre = tabla_temporal.Localidad
-	INNER JOIN Tipo_de_propiedad
-	ON Tipo_de_propiedad.Descripcion = tabla_temporal.Tipo_de_propiedad
-	WHERE tabla_temporal.Nombre_propiedad IS NOT NULL AND tabla_temporal.Nombre_usuario IS NOT NULL;
-
-drop table tabla_temporal;
-END;
 */

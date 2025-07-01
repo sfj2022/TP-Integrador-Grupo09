@@ -817,13 +817,19 @@ GO
 
 -- SP para insertar una nueva membresía
 CREATE OR ALTER PROCEDURE InsertarMembresia
-    @ID_tipo INT,
+    @ID_tipo INT = NULL,
     @nombre VARCHAR(20),
     @descripcion VARCHAR(140),
     @costo DECIMAL(10,2)
 AS
 BEGIN
-    SET NOCOUNT ON;
+	SET NOCOUNT ON;
+	IF @ID_tipo IS NULL OR LTRIM(RTRIM(@ID_tipo)) = ''
+    BEGIN
+        SELECT @ID_tipo = ISNULL(MAX(ID_tipo), 0) + 1
+        FROM Actividades.Membresia;
+
+    END
 
     -- Validaciones básicas
     IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
@@ -843,6 +849,10 @@ BEGIN
     BEGIN
         THROW 50001, 'ERROR: El ID_tipo de membresía ya existe. Por favor, utilice un ID diferente.', 1;
          
+    END
+	 IF EXISTS (SELECT 1 FROM Actividades.Membresia WHERE nombre = @nombre)
+    BEGIN
+        THROW 50001, 'ERROR: El nombre de membresía ya existe. Por favor, utilice un nombre diferente.', 1; 
     END
 
     INSERT INTO Actividades.Membresia (ID_tipo, nombre, descripcion, costo)
@@ -1045,14 +1055,25 @@ GO
 
 -- SP para insertar una nueva actividad deportiva
 CREATE OR ALTER PROCEDURE InsertarActividadDeportiva
-    @ID_actividad INT,
+    @ID_actividad INT = NULL,
     @Nombre VARCHAR(32),
     @costo DECIMAL(10,2)
 AS
 BEGIN
     SET NOCOUNT ON;
+	IF @ID_actividad IS NULL OR LTRIM(RTRIM(@ID_actividad)) = ''
+    BEGIN
+        SELECT @ID_actividad = ISNULL(MAX(ID_actividad), 0) + 1
+        FROM Actividades.Actividades_Deportivas;
+    END
 
     -- Validaciones básicas
+
+    IF EXISTS (SELECT 1 FROM Actividades.Actividades_Deportivas WHERE Nombre = @Nombre)
+    BEGIN
+        THROW 50001, 'ERROR: El nombre de la actividad ya existe. Por favor, utilice un nombre diferente.', 1; 
+    END
+
     IF @Nombre IS NULL OR LTRIM(RTRIM(@Nombre)) = ''
     BEGIN
         THROW 50001, 'ERROR: El nombre de la actividad deportiva no puede estar vacío.', 1;
@@ -1282,7 +1303,12 @@ CREATE OR ALTER PROCEDURE InsertarAcDepTurno
 AS
 BEGIN
     SET NOCOUNT ON;
+	IF @ID_turno IS NULL OR LTRIM(RTRIM(@ID_turno)) = ''
+    BEGIN
+        SELECT @ID_turno = ISNULL(MAX(ID_turno), 0) + 1
+        FROM Actividades.AcDep_turnos;
 
+    END
     -- Validaciones básicas
     IF @turno IS NULL OR LTRIM(RTRIM(@turno)) = ''
     BEGIN
@@ -1471,7 +1497,7 @@ GO
 -- SP para insertar una nueva inscripción deportiva
 CREATE OR ALTER PROCEDURE InsertarInscripcionDeportiva
     @ID_socio INT,
-    @ID_inscripcion INT,
+    @ID_inscripcion INT = NULL,
     @ID_actividad INT,
     @ID_Turno INT,
     @fecha_inicio DATE,
@@ -1479,7 +1505,13 @@ CREATE OR ALTER PROCEDURE InsertarInscripcionDeportiva
 AS
 BEGIN
     SET NOCOUNT ON;
+	
+	IF @ID_inscripcion IS NULL OR LTRIM(RTRIM(@ID_inscripcion)) = ''
+    BEGIN
+        SELECT @ID_inscripcion = ISNULL(MAX(ID_inscripcion), 0) + 1
+        FROM Actividades.Inscripcion_Deportiva;
 
+    END
     -- Validaciones básicas
     IF @fecha_inicio IS NULL OR @fecha_inicio > GETDATE()
     BEGIN
