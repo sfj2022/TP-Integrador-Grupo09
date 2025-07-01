@@ -1,8 +1,5 @@
 --Creacion de Store Procedures para la carga de datos
 USE SolNorteDB
-
-
-
 /*
 
 --CONFIGURACION DEL OPENROWSET - para la lectura del xlsx
@@ -139,10 +136,9 @@ SELECT * FROM ##Tabla_Subtabla_2;
 SELECT * FROM ##Tabla_Subtabla_3;
 */
 
-GO
-DELETE FROM Persona.SocioTelefonos;
-DELETE FROM Persona.SocioEmergencia;
-DELETE FROM Persona.Socio;
+
+
+
 GO
 --SP que importa los datos de la primer hoja "Responsables de Pago" 
 CREATE OR ALTER PROCEDURE ProcesarHoja1 (@RutaArchivo VARCHAR(255))
@@ -172,8 +168,7 @@ DECLARE
 @contrasenia VARCHAR(32),
 @caducidad_contrasenia DATE,
 @fila INT = 1,
-@total INT,
-@telTrans VARCHAR(30);
+@total INT;
 
 SELECT @total = COUNT(*) FROM ##Excel_Hoja;
 
@@ -210,18 +205,12 @@ FROM ##Excel_Hoja;
 	IF @TelCont IS NOT NULL
 		EXEC InsertarSocioTelefono @ID_socio = @ID_socio, @Tel = @TelCont;
 
-    -- SET @telTrans = CAST(CAST(@TelEmerg1 AS DECIMAL(38, 0)) AS VARCHAR(100));
-       SET @telTrans = dbo.ConvertirNumeroATextoPlano(@TelEmerg1)
     
+	IF @TelEmerg1 IS NOT NULL
+		EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg1;
 
-
-
-		select @telTrans as teltransformado, @TelEmerg1 as TelEmerg
-	--IF @TelEmerg1 IS NOT NULL
-	--	EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg1;
-
-	--IF @TelEmerg2 IS NOT NULL
-	--	EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg2;
+	IF @TelEmerg2 IS NOT NULL
+		EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg2;
 
 
 	 END TRY
@@ -236,40 +225,142 @@ FROM ##Excel_Hoja;
 END
 
 GO
-/*
-SELECT 
-    [ teléfono de contacto],
-    SQL_VARIANT_PROPERTY([ teléfono de contacto], 'BaseType') AS Tipo,
-    CAST([ teléfono de contacto] AS VARCHAR(100)) AS ComoTexto,
-    dbo.ConvertirNumeroATextoPlano([ teléfono de contacto]) AS ConvertidoPlano
-FROM ##Excel_Hoja
-*/
+
 /*
 
 EXEC ProcesarHoja1 'C:\data\Datos socios.xlsx';
-
-Select * from Persona.Socio
-Select * from Persona.SocioTelefonos
-Select * from Persona.SocioEmergencia
 */
+GO
+
+
+--select * from ##Excel_Hoja 
 GO
 --SP que importa los datos de la segunda hoja "Grupo Familiar" 
 CREATE OR ALTER PROCEDURE ProcesarHoja2 (
     @RutaArchivo VARCHAR(255))
 AS
 BEGIN
-DECLARE @NombreHoja CHAR(20)='Grupo Familiar';
+	SET NOCOUNT ON;
+	SET DATEFORMAT DMY;
 
+	DECLARE @NombreHoja VARCHAR(20)='Grupo Familiar';
+	EXEC ImportarExcel @RutaArchivo, @NombreHoja;
+	
+	DECLARE
+	@ID_socio INT,
+	@ID_socio_responsable INT,
+	@nombre VARCHAR(30),
+	@apellido VARCHAR(30),
+	@DNI VARCHAR(10),
+	@Email VARCHAR(50),
+	@FNac DATE,
+	@NombObraSocial VARCHAR(50),
+	@NroSocioObraSocial VARCHAR(30),
+	@domicilio VARCHAR(15),
+	@TelCont VARCHAR(15),
+	@TelEmerg1 VARCHAR(50),
+	@TelEmerg2 VARCHAR(50),
+	@estado VARCHAR(10),
+	@usuario VARCHAR(16),
+	@contrasenia VARCHAR(32),
+	@caducidad_contrasenia DATE,
+	@fila INT = 1,
+	@total INT;
+
+	SELECT @total = COUNT(*) FROM ##Excel_Hoja;
+	SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #ExcelNumerado
+FROM ##Excel_Hoja;
+
+
+WHILE @fila <= @total
+ BEGIN
+	BEGIN TRY
+
+			
+		SELECT
+    @ID_socio = TRY_CAST(REPLACE([Nro de Socio], 'SN-', '') AS INT),
+    @ID_socio_responsable = TRY_CAST(REPLACE([Nro de socio RP], 'SN-', '') AS INT),
+    @nombre = [Nombre],
+    @apellido = [ apellido],
+    @DNI = dbo.ConvertirNumeroATextoPlano([ DNI]),
+    @FNac = TRY_CAST([ fecha de nacimiento] AS DATE),
+    @NombObraSocial = ISNULL(NULLIF([ Nombre de la obra social o prepaga], ''), 'hospital público más cercano'),
+    @NroSocioObraSocial = ISNULL(NULLIF([nro# de socio obra social/prepaga ], ''), 'no tiene'),
+    @TelCont = dbo.ConvertirNumeroATextoPlano(NULLIF([ teléfono de contacto], '')),
+    @TelEmerg1 = dbo.ConvertirNumeroATextoPlano(NULLIF([ teléfono de contacto emergencia], '')),
+    @TelEmerg2 = dbo.ConvertirNumeroATextoPlano([teléfono de contacto de emergencia ])
+FROM #ExcelNumerado
+WHERE nro_fila = @fila;
+
+SELECT 
+    @Email = ISNULL(dbo.ConvertirNumeroATextoPlano(NULLIF([ email personal], '')), 
+                    (SELECT TOP 1 Email FROM Persona.Socio WHERE ID_socio = @ID_socio_responsable)),
+    @domicilio = (SELECT domicilio FROM Persona.Socio WHERE ID_socio = @ID_socio_responsable),
+    @usuario = LEFT(LOWER(LEFT(
+                ISNULL(dbo.ConvertirNumeroATextoPlano(NULLIF([ email personal], '')), 
+                (SELECT TOP 1 Email FROM Persona.Socio WHERE ID_socio = @ID_socio_responsable))
+            , CHARINDEX('@', 
+                ISNULL(dbo.ConvertirNumeroATextoPlano(NULLIF([ email personal], '')), 
+                (SELECT TOP 1 Email FROM Persona.Socio WHERE ID_socio = @ID_socio_responsable))
+            ) - 1)), 11) + 'menor'
+FROM #ExcelNumerado
+WHERE nro_fila = @fila;
+
+		IF @ID_socio IS NOT NULL AND @ID_socio_responsable IS NOT NULL
+		
+
+		EXEC InsertarSocio @ID_socio = @ID_socio, @DNI = @DNI, @Nombre = @nombre, @Apellido = @apellido, @Email = @Email, @FechaNacimiento = @FNac, @domicilio = @domicilio, @obra_social = @NombObraSocial, @numObraSocial = @NroSocioObraSocial, @telObraSocial = '-', @estado = @estado, @usuario = @usuario, @contrasenia = @contrasenia, @caducidad_contrasenia = @caducidad_contrasenia;
+		INSERT INTO Persona.responsabilidad (ID_responsable, ID_menor)
+		VALUES (@ID_socio_responsable, @ID_socio);
+			
+			IF NOT EXISTS (
+				SELECT 1
+				FROM Persona.Socio
+				WHERE ID_socio = @ID_socio_responsable
+			)
+			BEGIN
+				THROW 50001, 'Error: El número de socio responsable no existe en Persona.Socio.', 1;
+			END
+
+		IF @TelCont IS NOT NULL
+		EXEC InsertarSocioTelefono @ID_socio = @ID_socio, @Tel = @TelCont;
+		
+		IF @TelEmerg1 IS NOT NULL
+		EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg1;
+
+		IF @TelEmerg2 IS NOT NULL
+		EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg2;
+
+
+
+		 END TRY
+        BEGIN CATCH
+           PRINT 'Error al procesar el usuario ' + CAST(@fila AS VARCHAR) + ' (ID: ' + ISNULL(CAST(@ID_socio AS VARCHAR), 'NULL') + ', Nombre: ' + ISNULL(@nombre, 'NULL') + '): ' + ERROR_MESSAGE();
+
+        END CATCH;
+
+			SET @fila += 1;
+	END
 
 END
 
+
+--select * from Persona.Socio where ID_socio = 4148
+
+
+
+
+
+GO
+EXEC ProcesarHoja2 'C:\data\Datos socios.xlsx';
 GO
 --SP que importa los datos de la tercer hoja "pago cuotas" 
 CREATE OR ALTER PROCEDURE ProcesarHoja3 (
     @RutaArchivo VARCHAR(255))
 AS
 BEGIN
-DECLARE @NombreHoja CHAR(20)='pago cuotas';
+DECLARE @NombreHoja VARCHAR(20)='pago cuotas';
 
 
 END
@@ -280,7 +371,7 @@ CREATE OR ALTER PROCEDURE ProcesarHoja4 (
     @RutaArchivo VARCHAR(255))
 AS
 BEGIN
-DECLARE @NombreHoja CHAR(20)='Tarifas';
+DECLARE @NombreHoja VARCHAR(20)='Tarifas';
 
 
 END
@@ -291,7 +382,7 @@ CREATE OR ALTER PROCEDURE ProcesarHoja5 (
     @RutaArchivo VARCHAR(255))
 AS
 BEGIN
-DECLARE @NombreHoja CHAR(20)='presentismo_actividades';
+DECLARE @NombreHoja VARCHAR(20)='presentismo_actividades';
 
 
 END
