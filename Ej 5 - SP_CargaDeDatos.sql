@@ -648,15 +648,13 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-CREATE TABLE #TempMeteo (
-    [time] VARCHAR(50),
-    [temperature_2m] VARCHAR(40),
-    [rain] VARCHAR(40),
-    [relative_humidity_2m] VARCHAR(40),
-    [wind_speed_10m] VARCHAR(40)
-);
-
-
+    CREATE TABLE #TempMeteo (
+        [time] VARCHAR(50),
+        [temperature_2m] VARCHAR(40),
+        [rain] VARCHAR(40),
+        [relative_humidity_2m] VARCHAR(40),
+        [wind_speed_10m] VARCHAR(40)
+    );
 
     DECLARE @sql VARCHAR(MAX);
 
@@ -673,63 +671,28 @@ CREATE TABLE #TempMeteo (
 
     EXEC(@sql);
 
-    DECLARE @fecha DATE, @climaMalo BIT;
+    -- Tabla temporal con datos resumidos por día
+    WITH DiasClima AS (
+        SELECT 
+            CONVERT(DATE, REPLACE([time], 'T', ' ')) AS fecha,
+            CASE 
+                WHEN MAX(TRY_CAST([rain] AS FLOAT)) > 0.5 THEN 1 
+                ELSE 0 
+            END AS climaMalo
+        FROM #TempMeteo
+        WHERE ISDATE(REPLACE([time], 'T', ' ')) = 1
+        GROUP BY CONVERT(DATE, REPLACE([time], 'T', ' '))
+    )
+    MERGE Asistencia.dias AS destino
+    USING DiasClima AS fuente
+        ON destino.fecha = fuente.fecha
+    WHEN MATCHED AND destino.climaMalo <> fuente.climaMalo THEN
+        -- Actualizar si cambió el clima
+        UPDATE SET destino.climaMalo = fuente.climaMalo
+    WHEN NOT MATCHED THEN
+        -- Insertar si no existe
+        INSERT (fecha, climaMalo) VALUES (fuente.fecha, fuente.climaMalo);
 
-	DECLARE fila CURSOR FOR
-    SELECT 
-        CONVERT(DATE, REPLACE([time], 'T', ' ')) AS fecha,
-        CASE 
-            WHEN MAX(TRY_CAST([rain] AS FLOAT)) > 0.5 THEN 1 
-            ELSE 0 
-        END AS climaMalo
-    FROM #TempMeteo
-    WHERE ISDATE(REPLACE([time], 'T', ' ')) = 1
-    GROUP BY CONVERT(DATE, REPLACE([time], 'T', ' '));
-
-
-    OPEN fila;
-    FETCH NEXT FROM fila INTO @fecha, @climaMalo;
-
-    WHILE @@FETCH_STATUS = 0
-BEGIN
-    DECLARE @climaActual BIT;
-
-    SELECT @climaActual = climaMalo
-    FROM Asistencia.dias
-    WHERE fecha = @fecha;
-
-    IF @climaActual IS NULL
-    BEGIN
-        -- No existe la fecha → Insertar
-        BEGIN TRY
-            EXEC InsertarDia @fecha, @climaMalo;
-        END TRY
-        BEGIN CATCH
-            PRINT FORMATMESSAGE('Error al insertar %s: %s',
-                CONVERT(VARCHAR(10), @fecha, 120),
-                ERROR_MESSAGE());
-        END CATCH;
-    END
-    ELSE IF @climaActual <> @climaMalo
-    BEGIN
-        -- Existe y necesita actualización
-        BEGIN TRY
-            EXEC ActualizarDia @fecha, @climaMalo;
-        END TRY
-        BEGIN CATCH
-            PRINT FORMATMESSAGE('Error al actualizar %s: %s',
-                CONVERT(VARCHAR(10), @fecha, 120),
-                ERROR_MESSAGE());
-        END CATCH;
-    END
-    -- Si ya existe y el valor coincide, no se hace nada
-
-    FETCH NEXT FROM fila INTO @fecha, @climaMalo;
-END;
-
-
-    CLOSE fila;
-    DEALLOCATE fila;
     DROP TABLE #TempMeteo;
 END;
 GO
