@@ -104,12 +104,12 @@ AS
 BEGIN
   SET NOCOUNT ON;
 
-  -- Datos base: inasistencias con categoría y actividad
+  -- Inasistencias con actividad y tipo de membresía
   WITH Inasistencias AS (
     SELECT 
       a.ID_socio,
       COALESCE(ad.Nombre, ao.Nombre) AS Actividad,
-      m.nombre AS Categoria
+      m.ID_tipo AS TipoMembresia
     FROM Asistencia.asistencia a
     INNER JOIN Actividades.Inscripcion_Socio i 
       ON a.ID_socio = i.ID_socio 
@@ -120,21 +120,19 @@ BEGIN
     WHERE a.Presentismo = 0
   ),
 
-  -- Conteo de inasistencias y socios únicos por actividad y categoría
   Conteo AS (
     SELECT 
       Actividad,
-      Categoria,
+      TipoMembresia,
       COUNT(*) AS CantInasistencias,
       COUNT(DISTINCT ID_socio) AS CantSocios
     FROM Inasistencias
-    GROUP BY Actividad, Categoria
+    GROUP BY Actividad, TipoMembresia
   )
 
-  -- Pivot final
   SELECT 
     c.Actividad,
-    
+
     ISNULL(m.CantSocios, 0) AS [Socios_Mayor],
     ISNULL(m.CantInasistencias, 0) AS [Inasistencias_Mayor],
 
@@ -150,9 +148,9 @@ BEGIN
   FROM (
     SELECT DISTINCT Actividad FROM Conteo
   ) c
-  LEFT JOIN Conteo m ON c.Actividad = m.Actividad AND m.Categoria = 'Mayor'
-  LEFT JOIN Conteo ca ON c.Actividad = ca.Actividad AND ca.Categoria = 'Cadete'
-  LEFT JOIN Conteo me ON c.Actividad = me.Actividad AND me.Categoria = 'Menor'
+  LEFT JOIN Conteo m ON c.Actividad = m.Actividad AND m.TipoMembresia = 1 -- Mayor
+  LEFT JOIN Conteo ca ON c.Actividad = ca.Actividad AND ca.TipoMembresia = 2 -- Cadete
+  LEFT JOIN Conteo me ON c.Actividad = me.Actividad AND me.TipoMembresia = 3 -- Menor
 
   ORDER BY [Inasistencias_Totales] DESC;
 END;
