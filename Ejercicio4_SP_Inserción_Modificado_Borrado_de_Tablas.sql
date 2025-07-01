@@ -1174,121 +1174,129 @@ GO
 
 -- SP para insertar una nueva actividad "otra"
 CREATE OR ALTER PROCEDURE InsertarActividadOtra
-    @ID_actividad INT,
+    @ID_actividad INT = NULL,
     @Nombre VARCHAR(32),
-    @costo_socio DECIMAL(10,2),
-    @costo_invitados DECIMAL(10,2)
+    @TipoDuracion VARCHAR(20),
+    @TipoPersona VARCHAR(10),
+    @Condicion VARCHAR(10),
+    @Costo DECIMAL(10,2)
 AS
 BEGIN
     SET NOCOUNT ON;
+	IF @ID_actividad IS NULL
+		BEGIN
+			SELECT @ID_actividad = ISNULL(MAX(ID_actividad), 0) + 1
+			FROM Actividades.Actividades_Otras;
+		END
 
-    -- Validaciones básicas
+
     IF @Nombre IS NULL OR LTRIM(RTRIM(@Nombre)) = ''
-    BEGIN
         THROW 50001, 'ERROR: El nombre de la actividad "otra" no puede estar vacío.', 1;
-         
-    END
 
-    IF @costo_socio IS NULL OR @costo_socio < 0
-    BEGIN
-        THROW 50001, 'ERROR: El costo para socios debe ser un valor positivo.', 1;
-         
-    END
+    IF @TipoDuracion IS NULL OR LTRIM(RTRIM(@TipoDuracion)) = ''
+        THROW 50001, 'ERROR: El tipo de duración no puede estar vacío.', 1;
 
-    IF @costo_invitados IS NULL OR @costo_invitados < 0
-    BEGIN
-        THROW 50001, 'ERROR: El costo para invitados debe ser un valor positivo.', 1;
-         
-    END
+    IF @TipoPersona IS NULL OR LTRIM(RTRIM(@TipoPersona)) = ''
+        THROW 50001, 'ERROR: El tipo de persona no puede estar vacío.', 1;
 
-    -- Verificar si el ID_actividad ya existe
-    IF EXISTS (SELECT 1 FROM Actividades.Actividades_Otras WHERE ID_actividad = @ID_actividad)
-    BEGIN
-        THROW 50001, 'ERROR: El ID_actividad ya existe para Actividades_Otras. Por favor, utilice un ID diferente.', 1;
-         
-    END
+    IF @Condicion IS NULL OR LTRIM(RTRIM(@Condicion)) = ''
+        THROW 50001, 'ERROR: La condición de acceso no puede estar vacía.', 1;
 
-    INSERT INTO Actividades.Actividades_Otras (ID_actividad, Nombre, costo_socio, costo_invitados)
-    VALUES (@ID_actividad, @Nombre, @costo_socio, @costo_invitados);
+    IF @Costo IS NULL OR @Costo < 0
+        THROW 50001, 'ERROR: El costo debe ser un valor positivo.', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM Actividades.Actividades_Otras 
+        WHERE  TipoDuracion = @TipoDuracion
+              AND TipoPersona = @TipoPersona
+              AND Condicion = @Condicion
+    )
+        THROW 50001, 'ERROR: Ya existe una tarifa para esta combinación de actividad, duración, edad y condición de socio.', 1;
+
+    INSERT INTO Actividades.Actividades_Otras (
+        ID_actividad, Nombre, TipoDuracion, TipoPersona, Condicion, costo
+    )
+    VALUES (
+        @ID_actividad, @Nombre, @TipoDuracion, @TipoPersona, @Condicion, @Costo
+    );
 END;
+
 GO
 
 -- SP para actualizar una actividad "otra" existente
 CREATE OR ALTER PROCEDURE ActualizarActividadOtra
     @ID_actividad INT,
+    @TipoDuracion VARCHAR(20),
+    @TipoPersona VARCHAR(10),
+    @Condicion VARCHAR(10),
     @Nombre VARCHAR(32) = NULL,
-    @costo_socio DECIMAL(10,2) = NULL,
-    @costo_invitados DECIMAL(10,2) = NULL
+    @Costo DECIMAL(10,2) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Verificar si la actividad existe
-    IF NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Otras WHERE ID_actividad = @ID_actividad)
-    BEGIN
-        THROW 50001, 'ERROR: La actividad "otra" con el ID especificado no existe.', 1;
-         
-    END
+    IF NOT EXISTS (
+        SELECT 1 FROM Actividades.Actividades_Otras
+        WHERE ID_actividad = @ID_actividad
+              AND TipoDuracion = @TipoDuracion
+              AND TipoPersona = @TipoPersona
+              AND Condicion = @Condicion
+    )
+        THROW 50001, 'ERROR: La actividad especificada con esa combinación no existe.', 1;
 
-    -- Validaciones para los parámetros que se actualizan
     IF @Nombre IS NOT NULL AND LTRIM(RTRIM(@Nombre)) = ''
-    BEGIN
-        THROW 50001, 'ERROR: El nombre de la actividad "otra" no puede estar vacío.', 1;
-         
-    END
+        THROW 50001, 'ERROR: El nombre no puede estar vacío.', 1;
 
-    IF @costo_socio IS NOT NULL AND @costo_socio < 0
-    BEGIN
-        THROW 50001, 'ERROR: El costo para socios debe ser un valor positivo.', 1;
-         
-    END
-
-    IF @costo_invitados IS NOT NULL AND @costo_invitados < 0
-    BEGIN
-        THROW 50001, 'ERROR: El costo para invitados debe ser un valor positivo.', 1;
-         
-    END
+    IF @Costo IS NOT NULL AND @Costo < 0
+        THROW 50001, 'ERROR: El costo debe ser un valor positivo.', 1;
 
     UPDATE Actividades.Actividades_Otras
-    SET
+    SET 
         Nombre = ISNULL(@Nombre, Nombre),
-        costo_socio = ISNULL(@costo_socio, costo_socio),
-        costo_invitados = ISNULL(@costo_invitados, costo_invitados)
+        costo = ISNULL(@Costo, costo)
     WHERE
-        ID_actividad = @ID_actividad;
+        ID_actividad = @ID_actividad
+        AND TipoDuracion = @TipoDuracion
+        AND TipoPersona = @TipoPersona
+        AND Condicion = @Condicion;
 END;
+
 GO
 
 -- SP para eliminar una actividad "otra"
 CREATE OR ALTER PROCEDURE EliminarActividadOtra
-    @ID_actividad INT
+    @ID_actividad INT,
+    @TipoDuracion VARCHAR(20),
+    @TipoPersona VARCHAR(10),
+    @Condicion VARCHAR(10)
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Verificar si la actividad existe
-    IF NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Otras WHERE ID_actividad = @ID_actividad)
-    BEGIN
-        THROW 50001, 'ERROR: La actividad "otra" con el ID especificado no existe.', 1;
-         
-    END
+    IF NOT EXISTS (
+        SELECT 1 FROM Actividades.Actividades_Otras
+        WHERE ID_actividad = @ID_actividad
+              AND TipoDuracion = @TipoDuracion
+              AND TipoPersona = @TipoPersona
+              AND Condicion = @Condicion
+    )
+        THROW 50001, 'ERROR: La actividad "otra" con esos parámetros no existe.', 1;
 
-    -- Verificar si hay turnos o inscripciones asociadas a esta actividad
+    -- Reemplazá esto si tenés tablas de dependencia reales
     IF EXISTS (SELECT 1 FROM Actividades.AcOtra_turnos WHERE ID_actividad = @ID_actividad)
-    BEGIN
-        THROW 50001, 'ERROR: No se puede eliminar la actividad "otra" porque tiene turnos asociados. Elimine los turnos primero.', 1;
-         
-    END
+        THROW 50001, 'ERROR: La actividad no se puede eliminar porque tiene turnos asociados.', 1;
 
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Otra WHERE ID_actividad = @ID_actividad)
-    BEGIN
-        THROW 50001, 'ERROR: No se puede eliminar la actividad "otra" porque tiene inscripciones asociadas. Elimine las inscripciones primero.', 1;
-         
-    END
+        THROW 50001, 'ERROR: La actividad no se puede eliminar porque tiene inscripciones asociadas.', 1;
 
     DELETE FROM Actividades.Actividades_Otras
-    WHERE ID_actividad = @ID_actividad;
+    WHERE ID_actividad = @ID_actividad
+          AND TipoDuracion = @TipoDuracion
+          AND TipoPersona = @TipoPersona
+          AND Condicion = @Condicion;
 END;
+
+
 GO
 
 -- =======================================================
@@ -2756,8 +2764,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Asistencia.dias WHERE fecha = @fecha)
     BEGIN
-        THROW 50001, 'ERROR: La fecha especificada no existe.', 1;
-         
+        THROW 50001, 'ERROR: La fecha especificada no existe.', 1; 
     END
 
     UPDATE Asistencia.dias
@@ -2819,7 +2826,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Asistencia.dias WHERE fecha = @Fecha)
     BEGIN
-        THROW 50001, 'ERROR: La Fecha del día no existe en la tabla de Asistencia.dias.', 1;
+        exec insertarDia @fecha=@Fecha,@climaMalo=0;
          
     END
 

@@ -161,8 +161,10 @@ GO
 CREATE TABLE Actividades.Actividades_Otras (
   ID_actividad INT PRIMARY KEY,
   Nombre VARCHAR(32),
-  costo_socio DECIMAL(10,2),
-  costo_invitados DECIMAL(10,2)
+  TipoDuracion VARCHAR(20),         -- Ej: 'Día', 'Mes', 'Temporada'
+  TipoPersona VARCHAR(10),          -- Ej: 'Adulto', 'Menor'
+  Condicion VARCHAR(10),            -- Ej: 'Invitado', 'Socio'
+  costo DECIMAL(10,2)
 );
 GO
 
