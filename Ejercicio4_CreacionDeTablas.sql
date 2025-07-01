@@ -161,8 +161,10 @@ GO
 CREATE TABLE Actividades.Actividades_Otras (
   ID_actividad INT PRIMARY KEY,
   Nombre VARCHAR(32),
-  costo_socio DECIMAL(10,2),
-  costo_invitados DECIMAL(10,2)
+  TipoDuracion VARCHAR(20),         -- Ej: 'Día', 'Mes', 'Temporada'
+  TipoPersona VARCHAR(10),          -- Ej: 'Adulto', 'Menor'
+  Condicion VARCHAR(10),            -- Ej: 'Invitado', 'Socio'
+  costo DECIMAL(10,2)
 );
 GO
 
@@ -231,7 +233,7 @@ GO
 CREATE TABLE Finansas.Cuenta (
   ID_socio INT,
   ID_cuenta INT,
-  ID_banco INT,
+  ID_banco INT  NULL,
   credenciales VARCHAR(50),
   tipo VARCHAR(20) CHECK (tipo IN ('credito', 'debito')),
   SaldoAFavor DECIMAL(10,2),
@@ -258,11 +260,11 @@ CREATE TABLE Finansas.Cuota (
   FOREIGN KEY (ID_socio) REFERENCES Persona.Socio(ID_socio)
 );
 GO
-
+--DROP TABLE Finansas.factura
 CREATE TABLE Finansas.factura (
   ID_factura INT PRIMARY KEY,
   DNI VARCHAR(8),
-  CUIT VARCHAR(11),
+  CUIT VARCHAR(13),
   FechaYHora DATETIME,
   costo DECIMAL(10,2),
   estado BIT
@@ -282,14 +284,16 @@ CREATE TABLE Finansas.detalle_factura (
   FOREIGN KEY (ID_cuota) REFERENCES Finansas.Cuota(ID_cuota)
 );
 GO
-
+--drop table Finansas.cobro
 CREATE TABLE Finansas.cobro (
+  ID_Cobro BIGINT PRIMARY KEY,
   ID_factura INT,
   ID_socio INT,
   ID_cuenta INT,
+  fecha date,
+  Medio_Pago Varchar(20),
   Costo DECIMAL(10,2),
   Estado BIT,
-  PRIMARY KEY (ID_factura, ID_socio, ID_cuenta),
   FOREIGN KEY (ID_factura) REFERENCES Finansas.factura(ID_factura),
   FOREIGN KEY (ID_socio, ID_cuenta) REFERENCES Finansas.Cuenta(ID_socio, ID_cuenta)
 );
@@ -334,6 +338,3 @@ CREATE TABLE Asistencia.asistencia (
 );
 
 GO
-
-
-

@@ -1,8 +1,10 @@
---Creacion de Store Procedures para la carga de datos
+﻿
 USE SolNorteDB
+--Creacion de Store Procedures para la carga de datos
 /*
+
 --CONFIGURACION DEL OPENROWSET - para la lectura del xlsx
---Debe tener instalado el Microsoft Access Database Engine 2016 Redistributable Versi�n: x64 - Enlace de descarga: https://www.microsoft.com/en-us/download/details.aspx?id=54920
+--Debe tener instalado el Microsoft Access Database Engine 2016 Redistributable Versión: x64 - Enlace de descarga: https://www.microsoft.com/en-us/download/details.aspx?id=54920
 
 EXEC sp_configure 'show advanced options', 1;
 RECONFIGURE;
@@ -30,9 +32,12 @@ GO
 CREATE OR ALTER PROCEDURE ImportarExcel ( @RutaArchivo NVARCHAR(255),@NombreHoja NVARCHAR(128))
 AS
 BEGIN
+
+PRINT 'Importando desde archivo: ' + @RutaArchivo;
+
 SET NOCOUNT ON;
     DECLARE @Temp_Lectura_XLSX NVARCHAR(MAX);
-    SET @Temp_Lectura_XLSX = N'
+    SET @Temp_Lectura_XLSX = '
 	IF OBJECT_ID(''tempdb..##Excel_Hoja'') IS NOT NULL DROP TABLE ##Excel_Hoja;
         SELECT *
         INTO ##Excel_Hoja
@@ -45,9 +50,32 @@ SET NOCOUNT ON;
     EXEC sp_executesql @Temp_Lectura_XLSX;
 END
 
+GO 
 
-EXEC ImportarExcel 'C:\data\Datos socios.xlsx', 'Tarifas';
-SELECT * FROM ##Excel_Hoja;
+CREATE OR ALTER FUNCTION dbo.ConvertirNumeroATextoPlano
+(
+    @ValorInput SQL_VARIANT
+)
+RETURNS VARCHAR(100)
+AS
+BEGIN
+    DECLARE @Resultado VARCHAR(100);
+    DECLARE @Texto NVARCHAR(100) = CAST(@ValorInput AS NVARCHAR(100));
+
+    -- Si contiene notación científica, lo tratamos
+    IF @Texto LIKE '%E+%' OR @Texto LIKE '%e+%'
+    BEGIN
+        DECLARE @BigNum DECIMAL(38,0);
+        SET @BigNum = TRY_CAST(@ValorInput AS DECIMAL(38,0));
+        SET @Resultado = CAST(@BigNum AS VARCHAR(100));
+    END
+    ELSE
+    BEGIN
+        SET @Resultado = @Texto;
+    END
+
+    RETURN @Resultado;
+END;
 
 -- ESTE SP separa la tabla temporal en 3 tablas de la hoja Tarifas, que sirve para procesar los datos de las tarifas
 -- Pide como parametro el nombre de la tabla temporal(de la hoja de Tarifas) , el rago de la fila 1, 2 y 3, el rango debe contener el titulo de la columna
@@ -87,215 +115,199 @@ BEGIN
     EXEC sp_executesql @SQL;
 END;
 
-GO
-EXEC SepararTablaTemporalEnTres
-    '##Excel_Hoja', -- nombre de la tabla temporal existente
-    1, 6,          -- Rango 1
-    9, 11,         -- Rango 2
-    15, 25;         -- Rango 3
 
-GO
--- Consult�s las nuevas tablas:
-SELECT * FROM ##Tabla_Subtabla_1;
-SELECT * FROM ##Tabla_Subtabla_2;
-SELECT * FROM ##Tabla_Subtabla_3;
-
-/*
-GO
-CREATE OR ALTER PROCEDURE CargarDataset (@archivo VARCHAR(100))
-AS
-BEGIN
-	
-	-- para que no de error de formato cuando agarra la fecha
-	SET DATEFORMAT DMY;
-
-	-- tabla como la de kaggle
-	CREATE TABLE tabla_temporal (
-		Id_propiedad INT,
-		Nombre_propiedad NVARCHAR(1000),
-		Id_usuario INT,
-		Nombre_usuario NVARCHAR(100),
-		Localidad NVARCHAR(100),
-		Latitud FLOAT,
-		Longitud FLOAT,
-		Tipo_de_propiedad NVARCHAR(100),
-		Precio_por_noche FLOAT,
-		Noches_minimas INT,
-		Numero_de_reviews INT,
-		Ultima_review DATE,
-		Reviews_mensuales FLOAT,
-		Cantidad_de_publicaciones INT,
-		Disponibilidad_365 INT
-	);
-
-
-	-- esto esta hecho de esta forma porque BULK INSERT no admite variables en el FROM, asi que hay que hacer esto raro
-	DECLARE @bulk NVARCHAR(MAX);
-	-- declaro una variable con el query que no hay que tocar mucho porque se rompe facil
-	SET @bulk = 'BULK INSERT tabla_temporal
-	FROM ''' +  @archivo + '''
-	 WITH (
-		FIRSTROW = 2,
-		FIELDTERMINATOR = '','',
-		ROWTERMINATOR = ''\n'',
-		FORMAT = ''CSV'',
-		FIELDQUOTE = ''"''
-	);';
-
-	-- y la ejecuto como si fuera in stored procedure
-	EXEC (@bulk);
-
-	-- Lleno localidad con los nombres y los "CP" distintos encontrados en el dataset
-	INSERT INTO Localidad (Nombre)
-	SELECT DISTINCT tabla_temporal.Localidad FROM tabla_temporal;
-
-	-- Lleno los tipos con los tipos de propiedad distintos encontrados en el dataset
-	INSERT INTO Tipo_de_propiedad (Descripcion)
-	SELECT DISTINCT tabla_temporal.Tipo_de_propiedad
-	FROM tabla_temporal;
-
-	INSERT INTO Categoria (Id_categoria, Nombre)
-	VALUES (1, 'Anfitrion');
-	INSERT INTO Categoria (Id_categoria, Nombre)
-	VALUES (2, 'SuperAnfitrion');
-
-	-- Creo una tabla temporal con id, nombre y cantidad de reviews
-	CREATE TABLE #Usuario_reviews (
-		Id_usuario INT,
-		Nombre_usuario NVARCHAR(100),
-		Reviews_totales INT
-	);
-
-	-- La lleno con el total de reviews hechas a propiedades cada usuario
-	INSERT INTO #Usuario_reviews
-	SELECT Id_usuario, Nombre_usuario, SUM(Numero_de_reviews) AS reviews
-	FROM tabla_temporal
-	GROUP BY Id_usuario, Nombre_usuario;
-
-	-- Obtengo el promedio de reviews
-	DECLARE @promedio_reviews TINYINT;
-	SET @promedio_reviews = (SELECT AVG(Reviews_totales) FROM #Usuario_reviews);
-
-	-- Si el total de reviews es mayor al promedio de reviews la categoria es 2, si no 1
-	INSERT INTO Usuario (Id_usuario, Nombre, Contrasenia, Id_categoria)
-	SELECT 
-		Id_usuario,
-		Nombre_usuario,
-		'P4ssW@rd',
-		CASE
-			WHEN Reviews_totales > @promedio_reviews THEN 2
-			ELSE 1
-		END
-	FROM #Usuario_reviews
-	WHERE Nombre_usuario IS NOT NULL;
-
-	DROP TABLE #Usuario_reviews;
-
-	-- anterior, sin categoria
-	--INSERT INTO Usuario (Id_usuario, Nombre)
-	--SELECT DISTINCT
-	--	tabla_temporal.Id_usuario,
-	--	tabla_temporal.Nombre_usuario
-	--FROM tabla_temporal
-	--WHERE tabla_temporal.Nombre_usuario IS NOT NULL;
-
-	-- Lleno propiedad con las del dataset y los foreign keys de usuario, localidad y tipo_de_propiedad ya cargados
-	INSERT INTO Propiedad (
-		Id_propiedad,
-		Nombre,
-		Noches_minimas,
-		Precio_por_noche,
-		Latitud,
-		Longitud,
-		Id_usuario,
-		Id_tipo_de_propiedad,
-		CP
-	)
-	SELECT
-		tabla_temporal.Id_propiedad,
-		tabla_temporal.Nombre_propiedad,
-		tabla_temporal.Noches_minimas,
-		tabla_temporal.Precio_por_noche,
-		tabla_temporal.Latitud,
-		tabla_temporal.Longitud,
-		tabla_temporal.Id_usuario,
-		Tipo_de_propiedad.Id_tipo_de_propiedad,
-		Localidad.CP
-	FROM tabla_temporal
-	INNER JOIN Localidad
-	ON Localidad.Nombre = tabla_temporal.Localidad
-	INNER JOIN Tipo_de_propiedad
-	ON Tipo_de_propiedad.Descripcion = tabla_temporal.Tipo_de_propiedad
-	WHERE tabla_temporal.Nombre_propiedad IS NOT NULL AND tabla_temporal.Nombre_usuario IS NOT NULL;
-
-drop table tabla_temporal;
-END;
-*/
 GO
 --SP que importa los datos de la primer hoja "Responsables de Pago" 
-CREATE OR ALTER PROCEDURE ProcesarHoja1 (
-    @RutaArchivo VARCHAR(255))
+CREATE OR ALTER PROCEDURE ProcesarHoja1 (@RutaArchivo VARCHAR(255))
 AS
 BEGIN
+    SET NOCOUNT ON;
+	SET DATEFORMAT DMY; -- para que no de error el formato de la fecha
+
 DECLARE @NombreHoja VARCHAR(20)='Responsables de Pago';
 EXEC ImportarExcel @RutaArchivo, @NombreHoja;
---SELECT * FROM ##Excel_Hoja;
-DECLARE @ID_socio int,
-@nombre varchar(30),
-@apellido varchar(30),
-@DNI varchar(50),
-@FNac varchar(50), --modificarlo---------------------
-@TelCont int,
-@TelEmerg1 varchar(50),
-@TelEmerg2 varchar(50),
-@NombObraSocial varchar(30),
-@NroSocioObraSocial varchar(30);
 
+DECLARE
+@ID_socio INT,
+@nombre VARCHAR(30),
+@apellido VARCHAR(30),
+@DNI VARCHAR(10),
+@Email VARCHAR(50),
+@FNac DATE,
+@domicilio VARCHAR(100),
+@NombObraSocial VARCHAR(50),
+@NroSocioObraSocial VARCHAR(30),
+@TelCont VARCHAR(15),
+@TelEmerg1 VARCHAR(30),
+@TelEmerg2 VARCHAR(30),
+@estado VARCHAR(10),
+@usuario VARCHAR(16),
+@contrasenia VARCHAR(32),
+@caducidad_contrasenia DATE,
+@fila INT = 1,
+@total INT;
 
-SELECT TOP 1 
-    @ID_socio = TRY_CAST(REPLACE([Nro de socio], 'SN-', '') AS INT),
-	@nombre = [Nombre],
-    @apellido = [ apellido],
-    @DNI = [ DNI],
-    @FNac = [ fecha de nacimiento],  --Modificarlo
-    @TelCont = [ tel�fono de contacto],
-    @TelEmerg1 = [ tel�fono de contacto emergencia],
-    @TelEmerg2 = [tel�fono de contacto de emergencia ],
-    @NombObraSocial = [ Nombre de la obra social o prepaga],
-    @NroSocioObraSocial = [nro# de socio obra social/prepaga ]
+SELECT @total = COUNT(*) FROM ##Excel_Hoja;
 
+-- Crear tabla temporal con numeración
+SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #ExcelNumerado
 FROM ##Excel_Hoja;
- 
- SELECT 
-    @ID_socio AS ID_socio,
-    @nombre AS Nombre,
-    @apellido AS Apellido,
-    @DNI AS DNI,
-    @FNac AS FechaNacimiento,
-    @TelCont AS TelefonoContacto,
-    @TelEmerg1 AS TelEmergencia1,
-    @TelEmerg2 AS TelEmergencia2,
-    @NombObraSocial AS ObraSocial,
-    @NroSocioObraSocial AS NumeroSocioOS;
 
+ WHILE @fila <= @total
+ BEGIN
+	BEGIN TRY
+		SELECT
+            @ID_socio = TRY_CAST(REPLACE([Nro de socio], 'SN-', '') AS INT),
+            @nombre = [Nombre],
+			@apellido = [ apellido],
+			@DNI = [ DNI],
+            @Email = [ email personal],
+            @FNac = TRY_CAST([ fecha de nacimiento] AS DATE),
+            @domicilio = 'Sin domicilio', 
+            @NombObraSocial = [ Nombre de la obra social o prepaga],
+            @NroSocioObraSocial = [nro# de socio obra social/prepaga ],
+			@TelCont = dbo.ConvertirNumeroATextoPlano([ teléfono de contacto]),
+            @TelEmerg1 = dbo.ConvertirNumeroATextoPlano([ teléfono de contacto emergencia]),
+			@TelEmerg2 = dbo.ConvertirNumeroATextoPlano([teléfono de contacto de emergencia ]),
+			@estado = 'activo',
+            @usuario = LEFT(LOWER(LEFT(@Email, CHARINDEX('@', @Email) - 1)), 16),
+            @contrasenia = '12345678', 
+            @caducidad_contrasenia = '31-12-2099'
+			FROM #ExcelNumerado
+			WHERE nro_fila = @fila;
 
+	EXEC InsertarSocio @ID_socio = @ID_socio, @DNI = @DNI, @Nombre = @nombre, @Apellido = @apellido, @Email = @Email, @FechaNacimiento = @FNac, @domicilio = @domicilio, @obra_social = @NombObraSocial, @numObraSocial = @NroSocioObraSocial, @telObraSocial = '-', @estado = @estado, @usuario = @usuario, @contrasenia = @contrasenia, @caducidad_contrasenia = @caducidad_contrasenia;
+	
+	IF @TelCont IS NOT NULL
+		EXEC InsertarSocioTelefono @ID_socio = @ID_socio, @Tel = @TelCont;
 
+    
+	IF @TelEmerg1 IS NOT NULL
+		EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg1;
+
+	IF @TelEmerg2 IS NOT NULL
+		EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg2;
+
+	 END TRY
+        BEGIN CATCH
+           PRINT 'Error al procesar el usuario ' + CAST(@fila AS VARCHAR) + ' (ID: ' + ISNULL(CAST(@ID_socio AS VARCHAR), 'NULL') + ', Nombre: ' + ISNULL(@nombre, 'NULL') + '): ' + ERROR_MESSAGE();
+
+        END CATCH;
+
+	SET @fila += 1;
+	END
 
 END
 
-GO 
-EXEC ProcesarHoja1 'C:\data\Datos socios.xlsx'
-
 GO
-
-
 --SP que importa los datos de la segunda hoja "Grupo Familiar" 
 CREATE OR ALTER PROCEDURE ProcesarHoja2 (
     @RutaArchivo VARCHAR(255))
 AS
 BEGIN
-DECLARE @NombreHoja VARCHAR(20)='Grupo Familiar';
+	SET NOCOUNT ON;
+	SET DATEFORMAT DMY;
 
+	DECLARE @NombreHoja VARCHAR(20)='Grupo Familiar';
+	EXEC ImportarExcel @RutaArchivo, @NombreHoja;
+	
+	DECLARE
+	@ID_socio INT,
+	@ID_socio_responsable INT,
+	@nombre VARCHAR(30),
+	@apellido VARCHAR(30),
+	@DNI VARCHAR(10),
+	@Email VARCHAR(50),
+	@FNac DATE,
+	@NombObraSocial VARCHAR(50),
+	@NroSocioObraSocial VARCHAR(30),
+	@domicilio VARCHAR(15),
+	@TelCont VARCHAR(15),
+	@TelEmerg1 VARCHAR(50),
+	@TelEmerg2 VARCHAR(50),
+	@estado VARCHAR(10),
+	@usuario VARCHAR(16),
+	@contrasenia VARCHAR(32),
+	@caducidad_contrasenia DATE,
+	@fila INT = 1,
+	@total INT;
+
+	SELECT @total = COUNT(*) FROM ##Excel_Hoja;
+	SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #ExcelNumerado
+FROM ##Excel_Hoja;
+
+
+WHILE @fila <= @total
+ BEGIN
+	BEGIN TRY
+
+			
+		SELECT
+    @ID_socio = TRY_CAST(REPLACE([Nro de Socio], 'SN-', '') AS INT),
+    @ID_socio_responsable = TRY_CAST(REPLACE([Nro de socio RP], 'SN-', '') AS INT),
+    @nombre = [Nombre],
+    @apellido = [ apellido],
+    @DNI = dbo.ConvertirNumeroATextoPlano([ DNI]),
+    @FNac = TRY_CAST([ fecha de nacimiento] AS DATE),
+    @NombObraSocial = ISNULL(NULLIF([ Nombre de la obra social o prepaga], ''), 'hospital público más cercano'),
+    @NroSocioObraSocial = ISNULL(NULLIF([nro# de socio obra social/prepaga ], ''), 'no tiene'),
+    @TelCont = dbo.ConvertirNumeroATextoPlano(NULLIF([ teléfono de contacto], '')),
+    @TelEmerg1 = dbo.ConvertirNumeroATextoPlano(NULLIF([ teléfono de contacto emergencia], '')),
+    @TelEmerg2 = dbo.ConvertirNumeroATextoPlano([teléfono de contacto de emergencia ])
+FROM #ExcelNumerado
+WHERE nro_fila = @fila;
+
+SELECT 
+    @Email = ISNULL(dbo.ConvertirNumeroATextoPlano(NULLIF([ email personal], '')), 
+                    (SELECT TOP 1 Email FROM Persona.Socio WHERE ID_socio = @ID_socio_responsable)),
+    @domicilio = (SELECT domicilio FROM Persona.Socio WHERE ID_socio = @ID_socio_responsable),
+    @usuario = LEFT(LOWER(LEFT(
+                ISNULL(dbo.ConvertirNumeroATextoPlano(NULLIF([ email personal], '')), 
+                (SELECT TOP 1 Email FROM Persona.Socio WHERE ID_socio = @ID_socio_responsable))
+            , CHARINDEX('@', 
+                ISNULL(dbo.ConvertirNumeroATextoPlano(NULLIF([ email personal], '')), 
+                (SELECT TOP 1 Email FROM Persona.Socio WHERE ID_socio = @ID_socio_responsable))
+            ) - 1)), 11) + 'menor'
+FROM #ExcelNumerado
+WHERE nro_fila = @fila;
+
+		IF @ID_socio IS NOT NULL AND @ID_socio_responsable IS NOT NULL
+		
+
+		EXEC InsertarSocio @ID_socio = @ID_socio, @DNI = @DNI, @Nombre = @nombre, @Apellido = @apellido, @Email = @Email, @FechaNacimiento = @FNac, @domicilio = @domicilio, @obra_social = @NombObraSocial, @numObraSocial = @NroSocioObraSocial, @telObraSocial = '-', @estado = @estado, @usuario = @usuario, @contrasenia = @contrasenia, @caducidad_contrasenia = @caducidad_contrasenia;
+		INSERT INTO Persona.responsabilidad (ID_responsable, ID_menor)
+		VALUES (@ID_socio_responsable, @ID_socio);
+			
+			IF NOT EXISTS (
+				SELECT 1
+				FROM Persona.Socio
+				WHERE ID_socio = @ID_socio_responsable
+			)
+			BEGIN
+				THROW 50001, 'Error: El número de socio responsable no existe en Persona.Socio.', 1;
+			END
+
+		IF @TelCont IS NOT NULL
+		EXEC InsertarSocioTelefono @ID_socio = @ID_socio, @Tel = @TelCont;
+		
+		IF @TelEmerg1 IS NOT NULL
+		EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg1;
+
+		IF @TelEmerg2 IS NOT NULL
+		EXEC InsertarSocioEmergencia @ID_socio = @ID_socio, @Tel = @TelEmerg2;
+
+
+
+		 END TRY
+        BEGIN CATCH
+           PRINT 'Error al procesar el usuario ' + CAST(@fila AS VARCHAR) + ' (ID: ' + ISNULL(CAST(@ID_socio AS VARCHAR), 'NULL') + ', Nombre: ' + ISNULL(@nombre, 'NULL') + '): ' + ERROR_MESSAGE();
+
+        END CATCH;
+
+			SET @fila += 1;
+	END
 
 END
 
@@ -305,8 +317,68 @@ CREATE OR ALTER PROCEDURE ProcesarHoja3 (
     @RutaArchivo VARCHAR(255))
 AS
 BEGIN
-DECLARE @NombreHoja VARCHAR(20)='pago cuotas';
+	SET NOCOUNT ON;
+	SET DATEFORMAT DMY; -- para que no de error el formato de la fecha
 
+	DECLARE @NombreHoja VARCHAR(20)='pago cuotas';
+	EXEC ImportarExcel @RutaArchivo, @NombreHoja;
+
+	DECLARE
+@ID_Pago BIGINT,
+@ID_Socio VARCHAR(30),
+@ID_Factura INT,
+@valor int,
+@Medio_Pago VARCHAR(15),
+@Fecha DATE,
+@fila INT = 1,
+@total INT;
+
+DECLARE --para generar la factura y cuenta
+@DNI INT,
+@CUIT CHAR(13),
+@ID_cuenta INT;
+
+SELECT @total = COUNT(*) FROM ##Excel_Hoja;
+SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #ExcelNumerado
+FROM ##Excel_Hoja;
+
+WHILE @fila <= @total
+ BEGIN
+	BEGIN TRY
+		SELECT
+		@ID_Pago = TRY_CAST(dbo.ConvertirNumeroATextoPlano([Id de pago]) AS BIGINT),
+		@ID_Socio = TRY_CAST(REPLACE([Responsable de pago], 'SN-', '') AS INT),
+		@valor =TRY_CAST([Valor] AS INT),
+		@Medio_Pago = [Medio de pago],
+		@Fecha =TRY_CAST([fecha] AS DATE)
+		FROM #ExcelNumerado
+		WHERE nro_fila = @fila;
+
+		SET @DNI = (SELECT DNI FROM Persona.Socio WHERE ID_Socio = @ID_Socio);
+		SET @CUIT = '20-' + CAST(@DNI AS VARCHAR) + '-3';
+				
+		exec InsertarFactura @ID_factura=NULL, @DNI=@DNI, @CUIT = @CUIT, @FechaYHora = @Fecha,@costo = @valor, @estado = true;
+
+		IF NOT EXISTS ( SELECT 1 FROM Finansas.Cuenta WHERE ID_Socio = @ID_Socio)
+		BEGIN
+		    EXEC InsertarCuenta @ID_Socio = @ID_Socio, @ID_cuenta = NULL;
+		END
+
+		SELECT @ID_Cuenta = ID_Cuenta FROM Finansas.Cuenta WHERE ID_Socio = @ID_Socio;
+		
+		SELECT @ID_Factura = MAX(ID_factura) FROM Finansas.factura WHERE DNI = @DNI AND CUIT = @CUIT AND FechaYHora = @Fecha;
+
+		Exec InsertarCobro @ID_factura=@ID_Factura ,@ID_Cobro=@ID_Pago, @ID_socio=@ID_Socio, @Costo=@valor, @Medio_Pago=@Medio_Pago, @fecha=@Fecha, @Estado = true, @ID_cuenta= @ID_Cuenta;
+
+		END TRY 
+        BEGIN CATCH
+           PRINT 'Error al procesar el pago ' + CAST(@fila AS VARCHAR) + ' (ID_Pago: ' + ISNULL(CAST(@ID_Pago AS VARCHAR), 'NULL') + ', ID_Usuario: ' + ISNULL(@ID_Socio, 'NULL') + '): ' + ERROR_MESSAGE();
+
+        END CATCH;
+
+	SET @fila += 1;
+	END
 
 END
 
@@ -317,17 +389,347 @@ CREATE OR ALTER PROCEDURE ProcesarHoja4 (
 AS
 BEGIN
 DECLARE @NombreHoja VARCHAR(20)='Tarifas';
+EXEC ImportarExcel @RutaArchivo, @NombreHoja;
 
+EXEC SepararTablaTemporalEnTres '##Excel_Hoja' , 1, 6, /*Rango 1*/ 9, 11,/*Rango 2*/ 15, 25;/*Rango 3*/
+Exec ProcesarSubTabla1;
+Exec ProcesarSubTabla2;
+Exec ProcesarSubTabla3;
+END
+
+GO
+
+CREATE OR ALTER PROCEDURE ProcesarSubTabla1 --[Actividad], [Valor por mes], [Vigente hasta]
+AS
+BEGIN
+SET NOCOUNT ON;
+SET DATEFORMAT DMY;
+
+DECLARE 
+@actividad Varchar(30),
+@valor decimal(10,2),
+@fech_vigencia date,
+@fila INT = 1,
+@total INT;
+
+SELECT @total = COUNT(*) FROM ##Tabla_Subtabla_1;
+SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #SubtablaNumerado
+FROM ##Tabla_Subtabla_1;
+
+WHILE @fila <= @total
+ BEGIN
+		BEGIN TRY
+		SELECT
+		@actividad=[Actividad],
+		@valor = TRY_CAST([Valor por mes] AS DECIMAL(10,2)),
+		@fech_vigencia = TRY_CAST([Vigente hasta] AS DATE)
+		FROM #SubtablaNumerado
+		WHERE nro_fila = @fila;
+
+		exec InsertarActividadDeportiva @ID_actividad=NULL,@Nombre=@actividad,@costo=@valor;
+
+		 END TRY
+        BEGIN CATCH
+           PRINT 'Error al procesar el la actividad ' + CAST(@fila AS VARCHAR) + ' (actividad: ' + ISNULL(CAST(@actividad AS VARCHAR), 'NULL') + ERROR_MESSAGE();
+
+        END CATCH;
+
+	SET @fila += 1;
+	END
+
+END
+
+
+GO
+
+CREATE OR ALTER PROCEDURE ProcesarSubTabla2 --[Categoria socio], [Valor cuota], [Vigente hasta]
+AS
+BEGIN
+
+SET NOCOUNT ON;
+SET DATEFORMAT DMY;
+
+DECLARE 
+@CatSocio Varchar(30),
+@valorCuota decimal(10,2),
+@fech_vigencia date,
+@fila INT = 1,
+@total INT;
+
+SELECT @total = COUNT(*) FROM ##Tabla_Subtabla_2;
+SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #SubtablaNumerado
+FROM ##Tabla_Subtabla_2;
+
+WHILE @fila <= @total
+ BEGIN
+		BEGIN TRY
+		SELECT
+		@CatSocio=[Actividad],
+		@valorCuota = TRY_CAST([Valor por mes] AS DECIMAL(10,2)),
+		@fech_vigencia = TRY_CAST([Vigente hasta] AS DATE)
+		FROM #SubtablaNumerado
+		WHERE nro_fila = @fila;
+
+		exec InsertarMembresia @ID_tipo=NULL,@Nombre=@CatSocio,@costo=@valorCuota, @descripcion=' ';
+
+		 END TRY
+        BEGIN CATCH
+           PRINT 'Error al procesar el la membresia ' + CAST(@fila AS VARCHAR) + ' (categoria: ' + ISNULL(CAST(@CatSocio AS VARCHAR), 'NULL ') + ERROR_MESSAGE();
+
+        END CATCH;
+
+	SET @fila += 1;
+	END
+
+END
+GO
+
+CREATE OR ALTER PROCEDURE ProcesarSubTabla3 
+AS
+BEGIN
+SET NOCOUNT ON;
+SET DATEFORMAT DMY;
+
+DECLARE
+@id_actividad INT,
+@nombre Varchar(30),
+@tipoDuracion Varchar(30),
+@tipoPersona Varchar(30),
+@tipoCondicion Varchar(30),
+@costo Decimal(10,2), 
+@costoTXT varchar(15),
+@fila INT = 1,
+@total INT;
+
+SELECT @total = COUNT(*) FROM ##Tabla_Subtabla_3;
+SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #SubtablaNumerado
+FROM ##Tabla_Subtabla_3;
+
+WHILE @fila <= @total
+ BEGIN
+		BEGIN TRY
+		SET @tipoPersona = CASE 
+            WHEN @fila % 2 = 1 THEN 'Adulto'
+            ELSE 'Menor'
+        END;
+
+        -- Determinar tipo de duración
+        SET @tipoDuracion = CASE 
+            WHEN @fila IN (1,2) THEN 'Día'
+            WHEN @fila IN (3,4) THEN 'Temporada'
+            WHEN @fila IN (5,6) THEN 'Mes'
+            ELSE 'Otro'
+        END;
+
+        -- SOCIO: el valor está en [Vigente hasta]
+        SELECT @costoTXT = [Vigente hasta]
+		FROM #SubtablaNumerado
+		WHERE nro_fila = @fila;
+SET @costo = TRY_CAST(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(@costoTXT)), '$', ''), '.', ''), ',', '.') AS DECIMAL(10,2));
+
+		 SET @tipoCondicion = 'Socio';
+
+
+		exec InsertarActividadOtra @ID_actividad=NULL ,@Nombre='pileta' ,@TipoDuracion=@tipoDuracion ,@TipoPersona=@tipoPersona ,@Condicion=@tipoCondicion ,@Costo=@costo; 
+		-- VISITANTE: el valor está en [F4]
+        SELECT @costoTXT = [F4]
+		FROM #SubtablaNumerado
+		WHERE nro_fila = @fila;
+		SET @costo = TRY_CAST(REPLACE(REPLACE(REPLACE(LTRIM(RTRIM(@costoTXT)), '$', ''), '.', ''), ',', '.') AS DECIMAL(10,2));
+
+            SET @tipoCondicion = 'Invitado';
+			
+			exec InsertarActividadOtra @ID_actividad=NULL ,@Nombre='pileta' ,@TipoDuracion=@tipoDuracion ,@TipoPersona=@tipoPersona ,@Condicion=@tipoCondicion ,@Costo=@costo; 
+            END TRY
+        BEGIN CATCH
+           PRINT 'Error al procesar el valor de la otra actividad ' + CAST(@fila AS VARCHAR) + ' (id: ' + ISNULL(CAST(@Costo AS VARCHAR), 'NULL ') + ERROR_MESSAGE();
+
+        END CATCH;
+
+	SET @fila += 1;
+	END
 
 END
 
 GO
 --SP que importa los datos de la quinta hoja "presentismo_actividades" 
-CREATE OR ALTER PROCEDURE ProcesarHoja5 (
+CREATE OR ALTER PROCEDURE ProcesarHoja5 ( --[Nro de Socio], [Actividad], [fecha de asistencia], [Asistencia], [Profesor]
     @RutaArchivo VARCHAR(255))
 AS
 BEGIN
-DECLARE @NombreHoja CHAR(20)='presentismo_actividades';
+DECLARE @NombreHoja VARCHAR(25)='presentismo_actividades';
+SET NOCOUNT ON;
+	SET DATEFORMAT DMY;
+	EXEC ImportarExcel @RutaArchivo, @NombreHoja;
 
+	DECLARE
+@ID_socio INT,
+@actividad VARCHAR(30),
+@FechaAsist DATE,
+@Asistencia VARCHAR(2),
+@Profesor VARCHAR(30),
+@id_actividad INT,
+@id_turno INT,
+@presentismo BIT,
+@fila INT = 1,
+@total INT;
+SELECT @total = COUNT(*) FROM ##Excel_Hoja;
+-- Crear tabla temporal con numeración
+SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #ExcelNumerado
+FROM ##Excel_Hoja;
+WHILE @fila <= @total
+ BEGIN
+	BEGIN TRY
+		SELECT
+			@ID_socio = TRY_CAST(REPLACE([Nro de Socio], 'SN-', '') AS INT),
+            @actividad = [Actividad],
+			@Asistencia = [Asistencia],
+            @Profesor = [Profesor],
+            @FechaAsist = TRY_CAST([fecha de asistencia] AS DATE)
+			FROM #ExcelNumerado
+			WHERE nro_fila = @fila;
+
+			IF @Asistencia = 'P' OR @Asistencia = 'J'
+			SET @presentismo=1;
+			else 
+			SET @presentismo=0;
+
+			--ACTIVIDAD YA INCERTADA EN HOJA 4
+			select TOP 1 @id_actividad = ID_actividad from Actividades.Actividades_Deportivas where Nombre=@actividad
+			
+
+
+			Exec InsertarAcDepTurno @ID_actividad=@id_actividad, @id_turno = null, @turno='M';
+
+			Select TOP 1 @id_turno = ID_turno from Actividades.AcDep_turnos where ID_actividad=@id_actividad and turno='M';
+
+			EXEC InsertarInscripcionDeportiva @ID_socio=@ID_socio, @ID_inscripcion=NULL, @ID_actividad=@id_actividad,@ID_Turno=@id_turno, @fecha_inicio = '1/1/2025';
+
+			Exec InsertarAsistencia @ID_socio=@ID_socio,@ID_actividad=@id_actividad,@ID_turno=@id_turno,@Fecha=@FechaAsist,@Presentismo=@presentismo;
+
+
+
+		END TRY
+        BEGIN CATCH
+           PRINT 'Error al procesar la asistencia ' + CAST(@fila AS VARCHAR) + ' (ID socio: ' + ISNULL(CAST(@ID_socio AS VARCHAR), 'NULL') + ', fecha: ' + ISNULL(CONVERT(VARCHAR, @FechaAsist, 103), 'NULL') + '): ' + ERROR_MESSAGE();
+
+        END CATCH;
+
+	SET @fila += 1;
+	END
 
 END
+
+GO
+CREATE OR ALTER PROCEDURE VerColumnasTablaTemporal
+    @NombreTabla NVARCHAR(128)
+AS
+BEGIN
+    DECLARE @ColumnList NVARCHAR(MAX) = '';
+
+    SELECT @ColumnList = STRING_AGG('[' + c.name + ']', ', ')
+    FROM tempdb.sys.columns c
+    INNER JOIN tempdb.sys.objects o ON c.object_id = o.object_id
+    WHERE o.name LIKE '%' + REPLACE(@NombreTabla, '#', '') + '%';
+
+    PRINT @ColumnList;
+END
+
+GO
+
+
+CREATE OR ALTER PROCEDURE CargarDiasDesdeCSV
+    @rutaArchivo VARCHAR(260)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+CREATE TABLE #TempMeteo (
+    [time] VARCHAR(50),
+    [temperature_2m] VARCHAR(40),
+    [rain] VARCHAR(40),
+    [relative_humidity_2m] VARCHAR(40),
+    [wind_speed_10m] VARCHAR(40)
+);
+
+
+
+    DECLARE @sql VARCHAR(MAX);
+
+    SET @sql = '
+    BULK INSERT #TempMeteo
+    FROM ''' + @rutaArchivo + '''
+    WITH (
+        FIRSTROW = 2,
+        FIELDTERMINATOR = '','',
+        ROWTERMINATOR = ''0x0A'',
+        CODEPAGE = ''ACP'',
+        TABLOCK
+    );';
+
+    EXEC(@sql);
+
+    DECLARE @fecha DATE, @climaMalo BIT;
+
+	DECLARE fila CURSOR FOR
+    SELECT 
+        CONVERT(DATE, REPLACE([time], 'T', ' ')) AS fecha,
+        CASE 
+            WHEN MAX(TRY_CAST([rain] AS FLOAT)) > 0.5 THEN 1 
+            ELSE 0 
+        END AS climaMalo
+    FROM #TempMeteo
+    WHERE ISDATE(REPLACE([time], 'T', ' ')) = 1
+    GROUP BY CONVERT(DATE, REPLACE([time], 'T', ' '));
+
+
+    OPEN fila;
+    FETCH NEXT FROM fila INTO @fecha, @climaMalo;
+
+    WHILE @@FETCH_STATUS = 0
+BEGIN
+    DECLARE @climaActual BIT;
+
+    SELECT @climaActual = climaMalo
+    FROM Asistencia.dias
+    WHERE fecha = @fecha;
+
+    IF @climaActual IS NULL
+    BEGIN
+        -- No existe la fecha → Insertar
+        BEGIN TRY
+            EXEC InsertarDia @fecha, @climaMalo;
+        END TRY
+        BEGIN CATCH
+            PRINT FORMATMESSAGE('Error al insertar %s: %s',
+                CONVERT(VARCHAR(10), @fecha, 120),
+                ERROR_MESSAGE());
+        END CATCH;
+    END
+    ELSE IF @climaActual <> @climaMalo
+    BEGIN
+        -- Existe y necesita actualización
+        BEGIN TRY
+            EXEC ActualizarDia @fecha, @climaMalo;
+        END TRY
+        BEGIN CATCH
+            PRINT FORMATMESSAGE('Error al actualizar %s: %s',
+                CONVERT(VARCHAR(10), @fecha, 120),
+                ERROR_MESSAGE());
+        END CATCH;
+    END
+    -- Si ya existe y el valor coincide, no se hace nada
+
+    FETCH NEXT FROM fila INTO @fecha, @climaMalo;
+END;
+
+
+    CLOSE fila;
+    DEALLOCATE fila;
+    DROP TABLE #TempMeteo;
+END;
+GO

@@ -1,18 +1,18 @@
 --Enunciado
 /*
-Entrega 4- Documento de instalaci√≥n y configuraci√≥n
-Luego de decidirse por un motor de base de datos relacional, lleg√≥ el momento de generar la
-base de datos. En esta oportunidad utilizar√°n SQL Server.
-Deber√° instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle las configuraciones aplicadas (ubicaci√≥n de archivos, memoria asignada, seguridad, puertos, etc.) en un documento como el que le entregar√≠a al DBA.
-Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. Deber√° entregar un archivo .sql con el script completo de creaci√≥n (debe funcionar si se lo ejecuta ‚Äútal cual‚Äù es entregado en una sola ejecuci√≥n). Incluya comentarios para indicar qu√© hace cada m√≥dulo de c√≥digo.
-Genere store procedures para manejar la inserci√≥n, modificado, borrado (si corresponde, tambi√©n debe decidir si determinadas entidades solo admitir√°n borrado l√≥gico) de cada tabla.
-Los nombres de los store procedures NO deben comenzar con ‚ÄúSP‚Äù. Algunas operaciones implicar√°n store procedures que involucran varias tablas, uso de transacciones, etc. Puede que incluso realicen ciertas operaciones mediante varios SPs.
-Aseg√∫rense de que los comentarios que acompa√±en al c√≥digo lo expliquen.
-Genere esquemas para organizar de forma l√≥gica los componentes del sistema y aplique esto en la creaci√≥n de objetos. NO use el esquema ‚Äúdbo‚Äù.
-Todos los SP creados deben estar acompa√±ados de juegos de prueba. Se espera que realicen validaciones b√°sicas en los SP (p/e cantidad mayor a cero, CUIT v√°lido, etc.) y que en los juegos de prueba demuestren la correcta aplicaci√≥n de las validaciones.
+Entrega 4- Documento de instalaciÛn y configuraciÛn
+Luego de decidirse por un motor de base de datos relacional, llegÛ el momento de generar la
+base de datos. En esta oportunidad utilizar·n SQL Server.
+Deber· instalar el DMBS y documentar el proceso. No incluya capturas de pantalla. Detalle las configuraciones aplicadas (ubicaciÛn de archivos, memoria asignada, seguridad, puertos, etc.) en un documento como el que le entregarÌa al DBA.
+Cree la base de datos, entidades y relaciones. Incluya restricciones y claves. Deber· entregar un archivo .sql con el script completo de creaciÛn (debe funcionar si se lo ejecuta ìtal cualî es entregado en una sola ejecuciÛn). Incluya comentarios para indicar quÈ hace cada mÛdulo de cÛdigo.
+Genere store procedures para manejar la inserciÛn, modificado, borrado (si corresponde, tambiÈn debe decidir si determinadas entidades solo admitir·n borrado lÛgico) de cada tabla.
+Los nombres de los store procedures NO deben comenzar con ìSPî. Algunas operaciones implicar·n store procedures que involucran varias tablas, uso de transacciones, etc. Puede que incluso realicen ciertas operaciones mediante varios SPs.
+Aseg˙rense de que los comentarios que acompaÒen al cÛdigo lo expliquen.
+Genere esquemas para organizar de forma lÛgica los componentes del sistema y aplique esto en la creaciÛn de objetos. NO use el esquema ìdboî.
+Todos los SP creados deben estar acompaÒados de juegos de prueba. Se espera que realicen validaciones b·sicas en los SP (p/e cantidad mayor a cero, CUIT v·lido, etc.) y que en los juegos de prueba demuestren la correcta aplicaciÛn de las validaciones.
 Las pruebas deben realizarse en un script separado, donde con comentarios se indique en cada caso el resultado esperado
-El archivo .sql con el script debe incluir comentarios donde consten este enunciado, la fecha de entrega, n√∫mero de grupo, nombre de la materia, nombres y DNI de los alumnos.
-Entregar todo en un zip (observar las pautas para nomenclatura antes expuestas) mediante la secci√≥n de pr√°cticas de MIEL. Solo uno de los miembros del grupo debe hacer la entrega.
+El archivo .sql con el script debe incluir comentarios donde consten este enunciado, la fecha de entrega, n˙mero de grupo, nombre de la materia, nombres y DNI de los alumnos.
+Entregar todo en un zip (observar las pautas para nomenclatura antes expuestas) mediante la secciÛn de pr·cticas de MIEL. Solo uno de los miembros del grupo debe hacer la entrega.
 
 FECHA DE ENTREGA 27/6
 Grupo 9
@@ -54,25 +54,25 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Validaciones b√°sicas
+    -- Validaciones b·sicas
     IF @DNI IS NULL
     BEGIN
-        THROW 50001, 'ERROR: El DNI no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El DNI no puede estar vacÌo.', 1;
     END
 
     IF LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
     BEGIN
-        THROW 50001, 'ERROR: El DNI debe contener 8 d√≠gitos num√©ricos.', 1;
+        THROW 50001, 'ERROR: El DNI debe contener 8 dÌgitos numÈricos.', 1;
 
     END
 
-	IF @nombre IS NULL OR @nombre LIKE '%[^A-Za-z√Å√â√ç√ì√ö√ë√°√©√≠√≥√∫√± ]%'
+	IF @nombre IS NULL OR @nombre LIKE '%[^A-Za-z¡…Õ”⁄—·ÈÌÛ˙Ò ]%'
 	BEGIN
 		THROW 50001, 'ERROR: El nombre solo debe contener letras y espacios.', 1;
 		 
 	END;
 
-	IF @apellido IS NULL OR @apellido LIKE '%[^A-Za-z√Å√â√ç√ì√ö√ë√°√©√≠√≥√∫√± ]%'
+	IF @apellido IS NULL OR @apellido LIKE '%[^A-Za-z¡…Õ”⁄—·ÈÌÛ˙Ò ]%'
 	BEGIN
 		THROW 50001, 'ERROR: El apellido solo debe contener letras y espacios.', 1;
 		 
@@ -81,22 +81,22 @@ BEGIN
 
     IF @Email IS NULL OR @Email NOT LIKE '%@%.%'
     BEGIN
-        THROW 50001, 'ERROR: El Email no es v√°lido.', 1;
+        THROW 50001, 'ERROR: El Email no es v·lido.', 1;
     END
 
     IF @FechaNacimiento IS NULL OR @FechaNacimiento > GETDATE()
     BEGIN
-		DECLARE @msg NVARCHAR(200) = 'ERROR: La Fecha de Nacimiento no es v√°lida. (F_Nac: ' + ISNULL(CAST(@FechaNacimiento AS VARCHAR), 'NULL') + ')';
+		DECLARE @msg NVARCHAR(200) = 'ERROR: La Fecha de Nacimiento no es v·lida. (F_Nac: ' + ISNULL(CAST(@FechaNacimiento AS VARCHAR), 'NULL') + ')';
 		THROW 50001, @msg, 1;
     END
 
     IF @estado NOT IN ('activo', 'inactivo', 'moroso')
     BEGIN
-        THROW 50001, 'ERROR: El estado del socio no es v√°lido. Debe ser "activo", "inactivo" o "moroso".', 1;
+        THROW 50001, 'ERROR: El estado del socio no es v·lido. Debe ser "activo", "inactivo" o "moroso".', 1;
          
     END
 
-    -- Verificar si el ID_socio ya est√°
+    -- Verificar si el ID_socio ya est·
     IF EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
         THROW 50001, 'ERROR: El ID_socio ya existe, use un ID diferente.', 1;
@@ -139,28 +139,28 @@ BEGIN
          
     END
 
-    -- Validaciones para los par√°metros que se actualizan
+    -- Validaciones para los par·metros que se actualizan
     IF @DNI IS NOT NULL AND (LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'))
     BEGIN
-        THROW 50001, 'ERROR: El DNI debe contener 8 d√≠gitos num√©ricos.', 1;
+        THROW 50001, 'ERROR: El DNI debe contener 8 dÌgitos numÈricos.', 1;
          
     END
 
     IF @Email IS NOT NULL AND (@Email NOT LIKE '%@%.%')
     BEGIN
-        THROW 50001, 'ERROR: El Email no es v√°lido.', 1;
+        THROW 50001, 'ERROR: El Email no es v·lido.', 1;
          
     END
 
     IF @FechaNacimiento IS NOT NULL AND (@FechaNacimiento > GETDATE())
     BEGIN
-        THROW 50001, 'ERROR: La Fecha de Nacimiento no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La Fecha de Nacimiento no es v·lida.', 1;
          
     END
 
     IF @estado IS NOT NULL AND @estado NOT IN ('activo', 'inactivo', 'moroso')
     BEGIN
-        THROW 50001, 'ERROR: El estado del socio no es v√°lido. Debe ser "activo", "inactivo" o "moroso".', 1;
+        THROW 50001, 'ERROR: El estado del socio no es v·lido. Debe ser "activo", "inactivo" o "moroso".', 1;
          
     END
 
@@ -182,7 +182,7 @@ BEGIN
 END;
 GO
 
--- SP para eliminar un socio (borrado l√≥gico)
+-- SP para eliminar un socio (borrado lÛgico)
 CREATE OR ALTER PROCEDURE EliminarSocio
     @ID_socio INT
 AS
@@ -196,7 +196,7 @@ BEGIN
          
     END
 
-    -- Actualizar el estado a 'inactivo' para simular un borrado l√≥gico
+    -- Actualizar el estado a 'inactivo' para simular un borrado lÛgico
     UPDATE Persona.Socio
     SET estado = 'inactivo'
     WHERE ID_socio = @ID_socio;
@@ -207,7 +207,7 @@ GO
 -- Stored Procedures para la tabla Persona.SocioTelefonos
 -- ====================================================
 
--- SP para insertar un nuevo tel√©fono de socio
+-- SP para insertar un nuevo telÈfono de socio
 CREATE OR ALTER PROCEDURE InsertarSocioTelefono
     @ID_socio INT,
     @Tel VARCHAR(15)
@@ -222,17 +222,17 @@ BEGIN
          
     END
 
-    -- Validar formato del tel√©fono
+    -- Validar formato del telÈfono
     IF @Tel IS NULL OR LTRIM(RTRIM(@Tel)) = '' OR NOT (@Tel LIKE '[0-9]%')
     BEGIN
-        THROW 50001, 'ERROR: El n√∫mero de tel√©fono no es v√°lido.', 1;
+        THROW 50001, 'ERROR: El n˙mero de telÈfono no es v·lido.', 1;
          
     END
 
-    -- Verificar si el tel√©fono ya existe para este socio
+    -- Verificar si el telÈfono ya existe para este socio
     IF EXISTS (SELECT 1 FROM Persona.SocioTelefonos WHERE ID_socio = @ID_socio AND Tel = @Tel)
     BEGIN
-        THROW 50001, 'ERROR: Este n√∫mero de tel√©fono ya est√° registrado para el socio.', 1;
+        THROW 50001, 'ERROR: Este n˙mero de telÈfono ya est· registrado para el socio.', 1;
          
     END
 
@@ -241,7 +241,7 @@ BEGIN
 END;
 GO
 
---  Actualizar un tel√©fono de socio
+--  Actualizar un telÈfono de socio
 CREATE OR ALTER PROCEDURE ActualizarSocioTelefono
     @ID_socio INT,
     @TelAntiguo VARCHAR(15),
@@ -250,28 +250,28 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Validar si el socio y el tel√©fono antiguo existen
+    -- Validar si el socio y el telÈfono antiguo existen
     IF NOT EXISTS (SELECT 1 FROM Persona.SocioTelefonos WHERE ID_socio = @ID_socio AND Tel = @TelAntiguo)
     BEGIN
-        THROW 50001, 'ERROR: El tel√©fono antiguo no est√° registrado para el socio especificado.', 1;
+        THROW 50001, 'ERROR: El telÈfono antiguo no est· registrado para el socio especificado.', 1;
          
     END
 
-    -- Validar formato del nuevo tel√©fono
+    -- Validar formato del nuevo telÈfono
     IF @TelNuevo IS NULL OR LTRIM(RTRIM(@TelNuevo)) = '' OR NOT (@TelNuevo LIKE '[0-9]%')
     BEGIN
-        THROW 50001, 'ERROR: El nuevo n√∫mero de tel√©fono no es v√°lido.', 1;
+        THROW 50001, 'ERROR: El nuevo n˙mero de telÈfono no es v·lido.', 1;
          
     END
 
-    -- Verificar si el nuevo tel√©fono ya existe para este socio (evitar duplicados)
+    -- Verificar si el nuevo telÈfono ya existe para este socio (evitar duplicados)
     IF EXISTS (SELECT 1 FROM Persona.SocioTelefonos WHERE ID_socio = @ID_socio AND Tel = @TelNuevo)
     BEGIN
-        THROW 50001, 'ERROR: El nuevo n√∫mero de tel√©fono ya est√° registrado para el socio.', 1;
+        THROW 50001, 'ERROR: El nuevo n˙mero de telÈfono ya est· registrado para el socio.', 1;
          
     END
 
-    -- Eliminar el tel√©fono antiguo y luego insertar el nuevo
+    -- Eliminar el telÈfono antiguo y luego insertar el nuevo
     DELETE FROM Persona.SocioTelefonos
     WHERE ID_socio = @ID_socio AND Tel = @TelAntiguo;
 
@@ -280,7 +280,7 @@ BEGIN
 END;
 GO
 
--- SP para eliminar un tel√©fono de socio
+-- SP para eliminar un telÈfono de socio
 CREATE OR ALTER PROCEDURE EliminarSocioTelefono
     @ID_socio INT,
     @Tel VARCHAR(15)
@@ -288,10 +288,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Validar si el tel√©fono existe para el socio
+    -- Validar si el telÈfono existe para el socio
     IF NOT EXISTS (SELECT 1 FROM Persona.SocioTelefonos WHERE ID_socio = @ID_socio AND Tel = @Tel)
     BEGIN
-        THROW 50001, 'ERROR: El tel√©fono especificado no existe para el socio.', 1;
+        THROW 50001, 'ERROR: El telÈfono especificado no existe para el socio.', 1;
          
     END
 
@@ -318,17 +318,17 @@ BEGIN
          
     END
 	
-    -- Validar si el tel√©fono est√° vac√≠o o es nulo
+    -- Validar si el telÈfono est· vacÌo o es nulo
     IF @Tel IS NULL OR LTRIM(RTRIM(@Tel)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El n√∫mero de tel√©fono de emergencia no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El n˙mero de telÈfono de emergencia no puede estar vacÌo.', 1;
          
     END
 
-    -- Verificar si el tel√©fono ya existe para este socio
+    -- Verificar si el telÈfono ya existe para este socio
     IF EXISTS (SELECT 1 FROM Persona.SocioEmergencia WHERE ID_socio = @ID_socio AND Tel = @Tel)
     BEGIN
-        THROW 50001, 'ERROR: Este n√∫mero de tel√©fono de emergencia ya est√° registrado para el socio.', 1;
+        THROW 50001, 'ERROR: Este n˙mero de telÈfono de emergencia ya est· registrado para el socio.', 1;
          
     END
 
@@ -337,7 +337,7 @@ BEGIN
 END;
 GO
 
--- SP para actualizar un tel√©fono de emergencia de socio
+-- SP para actualizar un telÈfono de emergencia de socio
 CREATE OR ALTER PROCEDURE ActualizarSocioEmergencia
     @ID_socio INT,
     @TelAntiguo VARCHAR(50),
@@ -346,28 +346,28 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Validar si el socio y el tel√©fono antiguo existen
+    -- Validar si el socio y el telÈfono antiguo existen
     IF NOT EXISTS (SELECT 1 FROM Persona.SocioEmergencia WHERE ID_socio = @ID_socio AND Tel = @TelAntiguo)
     BEGIN
-        THROW 50001, 'ERROR: El tel√©fono de emergencia antiguo no est√° registrado para el socio especificado.', 1;
+        THROW 50001, 'ERROR: El telÈfono de emergencia antiguo no est· registrado para el socio especificado.', 1;
          
     END
 
-    -- Validar si el nuevo tel√©fono vac√≠o o es nulo
+    -- Validar si el nuevo telÈfono vacÌo o es nulo
     IF @TelNuevo IS NULL OR LTRIM(RTRIM(@TelNuevo)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El nuevo n√∫mero de tel√©fono de emergencia no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nuevo n˙mero de telÈfono de emergencia no puede estar vacÌo.', 1;
          
     END
 
-    -- Verificar si el nuevo tel√©fono ya existe para este socio
+    -- Verificar si el nuevo telÈfono ya existe para este socio
     IF EXISTS (SELECT 1 FROM Persona.SocioEmergencia WHERE ID_socio = @ID_socio AND Tel = @TelNuevo)
     BEGIN
-        THROW 50001, 'ERROR: El nuevo n√∫mero de tel√©fono de emergencia ya est√° registrado para el socio.', 1;
+        THROW 50001, 'ERROR: El nuevo n˙mero de telÈfono de emergencia ya est· registrado para el socio.', 1;
          
     END
 
-    -- Eliminar el tel√©fono antiguo y luego insertar el nuevo
+    -- Eliminar el telÈfono antiguo y luego insertar el nuevo
     DELETE FROM Persona.SocioEmergencia
     WHERE ID_socio = @ID_socio AND Tel = @TelAntiguo;
 
@@ -377,7 +377,7 @@ END;
 GO
 
 
--- SP para eliminar un tel√©fono de emergencia de socio
+-- SP para eliminar un telÈfono de emergencia de socio
 CREATE OR ALTER PROCEDURE EliminarSocioEmergencia
     @ID_socio INT,
     @Tel VARCHAR(50)
@@ -385,10 +385,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Validar si el tel√©fono existe para el socio
+    -- Validar si el telÈfono existe para el socio
     IF NOT EXISTS (SELECT 1 FROM Persona.SocioEmergencia WHERE ID_socio = @ID_socio AND Tel = @Tel)
     BEGIN
-        THROW 50001, 'ERROR: El tel√©fono de emergencia especificado no existe para el socio.', 1;
+        THROW 50001, 'ERROR: El telÈfono de emergencia especificado no existe para el socio.', 1;
          
     END
 
@@ -416,22 +416,22 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Validaciones b√°sicas
+    -- Validaciones b·sicas
     IF @DNI IS NULL OR LTRIM(RTRIM(@DNI)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El DNI del invitado no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El DNI del invitado no puede estar vacÌo.', 1;
          
     END
 
     IF LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
     BEGIN
-        THROW 50001, 'ERROR: El DNI del invitado debe contener 8 d√≠gitos num√©ricos.', 1;
+        THROW 50001, 'ERROR: El DNI del invitado debe contener 8 dÌgitos numÈricos.', 1;
          
     END
 
     IF @fecha IS NULL OR @fecha > GETDATE()
     BEGIN
-        THROW 50001, 'ERROR: La Fecha del invitado no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La Fecha del invitado no es v·lida.', 1;
          
     END
 
@@ -478,7 +478,7 @@ BEGIN
          
     END
 
-    -- Validaciones para los par√°metros que se actualizan
+    -- Validaciones para los par·metros que se actualizan
     IF @ID_socio IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
         THROW 50001, 'ERROR: El ID_socio especificado no existe.', 1;
@@ -498,7 +498,7 @@ BEGIN
 END;
 GO
 
--- SP para eliminar un invitado (borrado f√≠sico, ya que no tiene un estado)
+-- SP para eliminar un invitado (borrado fÌsico, ya que no tiene un estado)
 CREATE OR ALTER PROCEDURE EliminarInvitado
     @DNI VARCHAR(8),
     @fecha DATE
@@ -522,7 +522,7 @@ GO
 -- Stored Procedures para la tabla Persona.responsabilidad
 -- ====================================================
 
--- SP para insertar una nueva relaci√≥n de responsabilidad
+-- SP para insertar una nueva relaciÛn de responsabilidad
 CREATE OR ALTER PROCEDURE InsertarResponsabilidad
     @ID_responsable INT,
     @ID_menor INT
@@ -543,17 +543,17 @@ BEGIN
          
     END
 
-    -- Evitar que un socio sea responsable de s√≠ mismo
+    -- Evitar que un socio sea responsable de sÌ mismo
     IF @ID_responsable = @ID_menor
     BEGIN
-        THROW 50001, 'ERROR: Un socio no puede ser responsable de s√≠ mismo.', 1;
+        THROW 50001, 'ERROR: Un socio no puede ser responsable de sÌ mismo.', 1;
          
     END
 
-    -- Verificar si la relaci√≥n de responsabilidad ya existe
+    -- Verificar si la relaciÛn de responsabilidad ya existe
     IF EXISTS (SELECT 1 FROM Persona.responsabilidad WHERE ID_responsable = @ID_responsable AND ID_menor = @ID_menor)
     BEGIN
-        THROW 50001, 'ERROR: Esta relaci√≥n de responsabilidad ya existe.', 1;
+        THROW 50001, 'ERROR: Esta relaciÛn de responsabilidad ya existe.', 1;
          
     END
 
@@ -562,7 +562,7 @@ BEGIN
 END;
 GO
 
--- SP para eliminar una relaci√≥n de responsabilidad
+-- SP para eliminar una relaciÛn de responsabilidad
 CREATE OR ALTER PROCEDURE EliminarResponsabilidad
     @ID_responsable INT,
     @ID_menor INT
@@ -570,10 +570,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Verificar si la relaci√≥n de responsabilidad existe
+    -- Verificar si la relaciÛn de responsabilidad existe
     IF NOT EXISTS (SELECT 1 FROM Persona.responsabilidad WHERE ID_responsable = @ID_responsable AND ID_menor = @ID_menor)
     BEGIN
-        THROW 50001, 'ERROR: La relaci√≥n de responsabilidad especificada no existe.', 1;
+        THROW 50001, 'ERROR: La relaciÛn de responsabilidad especificada no existe.', 1;
          
     END
 
@@ -594,10 +594,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Validaciones b√°sicas
+    -- Validaciones b·sicas
     IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El nombre del rol no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nombre del rol no puede estar vacÌo.', 1;
          
     END
 
@@ -629,10 +629,10 @@ BEGIN
          
     END
 
-    -- Validaciones para los par√°metros que se actualizan
+    -- Validaciones para los par·metros que se actualizan
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El nombre del rol no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nombre del rol no puede estar vacÌo.', 1;
          
     END
 
@@ -662,7 +662,7 @@ BEGIN
     -- Verificar si hay personal asociado a este rol antes de eliminarlo
     IF EXISTS (SELECT 1 FROM Gestion.Personal WHERE ID_rol = @ID_rol)
     BEGIN
-        THROW 50001, 'ERROR: No se puede eliminar el rol porque hay personal asociado a √©l. Desasocie el personal primero.', 1;
+        THROW 50001, 'ERROR: No se puede eliminar el rol porque hay personal asociado a Èl. Desasocie el personal primero.', 1;
          
     END
 
@@ -687,40 +687,40 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Validaciones b√°sicas
+    -- Validaciones b·sicas
     IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El nombre del personal no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nombre del personal no puede estar vacÌo.', 1;
          
     END
 
     IF @apellido IS NULL OR LTRIM(RTRIM(@apellido)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El apellido del personal no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El apellido del personal no puede estar vacÌo.', 1;
          
     END
 
     IF @DNI IS NULL OR LTRIM(RTRIM(@DNI)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El DNI del personal no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El DNI del personal no puede estar vacÌo.', 1;
          
     END
 
     IF LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
     BEGIN
-        THROW 50001, 'ERROR: El DNI del personal debe contener 8 d√≠gitos num√©ricos.', 1;
+        THROW 50001, 'ERROR: El DNI del personal debe contener 8 dÌgitos numÈricos.', 1;
          
     END
 
     IF @usuario IS NULL OR LTRIM(RTRIM(@usuario)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El usuario del personal no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El usuario del personal no puede estar vacÌo.', 1;
          
     END
 
     IF @contrasenia IS NULL OR LTRIM(RTRIM(@contrasenia)) = ''
     BEGIN
-        THROW 50001, 'ERROR: La contrase√±a del personal no puede estar vac√≠a.', 1;
+        THROW 50001, 'ERROR: La contraseÒa del personal no puede estar vacÌa.', 1;
          
     END
 
@@ -767,10 +767,10 @@ BEGIN
          
     END
 
-    -- Validaciones para los par√°metros que se actualizan
+    -- Validaciones para los par·metros que se actualizan
     IF @DNI IS NOT NULL AND (LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'))
     BEGIN
-        THROW 50001, 'ERROR: El DNI debe contener 8 d√≠gitos num√©ricos.', 1;
+        THROW 50001, 'ERROR: El DNI debe contener 8 dÌgitos numÈricos.', 1;
          
     END
 
@@ -793,7 +793,7 @@ BEGIN
 END;
 GO
 
--- SP para eliminar personal (borrado f√≠sico, se podr√≠a considerar l√≥gico si se a√±ade un campo de estado)
+-- SP para eliminar personal (borrado fÌsico, se podrÌa considerar lÛgico si se aÒade un campo de estado)
 CREATE OR ALTER PROCEDURE EliminarPersonal
     @ID_personal INT
 AS
@@ -815,7 +815,7 @@ GO
 -- Stored Procedures para la tabla Actividades.Membresia
 -- ===================================================
 
--- SP para insertar una nueva membres√≠a
+-- SP para insertar una nueva membresÌa
 CREATE OR ALTER PROCEDURE InsertarMembresia
     @ID_tipo INT = NULL,
     @nombre VARCHAR(20),
@@ -831,28 +831,28 @@ BEGIN
 
     END
 
-    -- Validaciones b√°sicas
+    -- Validaciones b·sicas
     IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El nombre de la membres√≠a no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nombre de la membresÌa no puede estar vacÌo.', 1;
          
     END
 
     IF @costo IS NULL OR @costo < 0
     BEGIN
-        THROW 50001, 'ERROR: El costo de la membres√≠a debe ser un valor positivo.', 1;
+        THROW 50001, 'ERROR: El costo de la membresÌa debe ser un valor positivo.', 1;
          
     END
 
     -- Verificar si el ID_tipo ya existe
     IF EXISTS (SELECT 1 FROM Actividades.Membresia WHERE ID_tipo = @ID_tipo)
     BEGIN
-        THROW 50001, 'ERROR: El ID_tipo de membres√≠a ya existe. Por favor, utilice un ID diferente.', 1;
+        THROW 50001, 'ERROR: El ID_tipo de membresÌa ya existe. Por favor, utilice un ID diferente.', 1;
          
     END
 	 IF EXISTS (SELECT 1 FROM Actividades.Membresia WHERE nombre = @nombre)
     BEGIN
-        THROW 50001, 'ERROR: El nombre de membres√≠a ya existe. Por favor, utilice un nombre diferente.', 1; 
+        THROW 50001, 'ERROR: El nombre de membresÌa ya existe. Por favor, utilice un nombre diferente.', 1; 
     END
 
     INSERT INTO Actividades.Membresia (ID_tipo, nombre, descripcion, costo)
@@ -860,7 +860,7 @@ BEGIN
 END;
 GO
 
--- SP para actualizar una membres√≠a existente
+-- SP para actualizar una membresÌa existente
 CREATE OR ALTER PROCEDURE ActualizarMembresia
     @ID_tipo INT,
     @nombre VARCHAR(20) = NULL,
@@ -870,23 +870,23 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Verificar si la membres√≠a existe
+    -- Verificar si la membresÌa existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Membresia WHERE ID_tipo = @ID_tipo)
     BEGIN
-        THROW 50001, 'ERROR: La membres√≠a con el ID especificado no existe.', 1;
+        THROW 50001, 'ERROR: La membresÌa con el ID especificado no existe.', 1;
          
     END
 
-    -- Validaciones para los par√°metros que se actualizan
+    -- Validaciones para los par·metros que se actualizan
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El nombre de la membres√≠a no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nombre de la membresÌa no puede estar vacÌo.', 1;
          
     END
 
     IF @costo IS NOT NULL AND @costo < 0
     BEGIN
-        THROW 50001, 'ERROR: El costo de la membres√≠a debe ser un valor positivo.', 1;
+        THROW 50001, 'ERROR: El costo de la membresÌa debe ser un valor positivo.', 1;
          
     END
 
@@ -900,24 +900,24 @@ BEGIN
 END;
 GO
 
--- SP para eliminar una membres√≠a
+-- SP para eliminar una membresÌa
 CREATE OR ALTER PROCEDURE EliminarMembresia
     @ID_tipo INT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Verificar si la membres√≠a existe
+    -- Verificar si la membresÌa existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Membresia WHERE ID_tipo = @ID_tipo)
     BEGIN
-        THROW 50001, 'ERROR: La membres√≠a con el ID especificado no existe.', 1;
+        THROW 50001, 'ERROR: La membresÌa con el ID especificado no existe.', 1;
          
     END
 
-    -- Verificar si hay inscripciones asociadas a esta membres√≠a
+    -- Verificar si hay inscripciones asociadas a esta membresÌa
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Socio WHERE ID_membresia = @ID_tipo)
     BEGIN
-        THROW 50001, 'ERROR: No se puede eliminar la membres√≠a porque hay inscripciones de socios asociadas a ella. Desasocie las inscripciones primero.', 1;
+        THROW 50001, 'ERROR: No se puede eliminar la membresÌa porque hay inscripciones de socios asociadas a ella. Desasocie las inscripciones primero.', 1;
          
     END
 
@@ -930,7 +930,7 @@ GO
 -- Stored Procedures para la tabla Actividades.Inscripcion_Socio
 -- =========================================================
 
--- SP para insertar una nueva inscripci√≥n de socio
+-- SP para insertar una nueva inscripciÛn de socio
 CREATE OR ALTER PROCEDURE InsertarInscripcionSocio
     @ID_socio INT,
     @ID_inscripcion INT,
@@ -941,10 +941,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Validaciones b√°sicas
+    -- Validaciones b·sicas
     IF @fecha_inicio IS NULL OR @fecha_inicio > GETDATE()
     BEGIN
-        THROW 50001, 'ERROR: La fecha de inicio de la inscripci√≥n no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripciÛn no es v·lida.', 1;
          
     END
 
@@ -954,7 +954,7 @@ BEGIN
          
     END
 
-    -- Validar si el socio y la membres√≠a existen
+    -- Validar si el socio y la membresÌa existen
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
         THROW 50001, 'ERROR: El ID_socio especificado no existe.', 1;
@@ -967,10 +967,10 @@ BEGIN
          
     END
 
-    -- Verificar si la inscripci√≥n ya existe para este socio
+    -- Verificar si la inscripciÛn ya existe para este socio
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Socio WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        THROW 50001, 'ERROR: Ya existe una inscripci√≥n con este ID para el socio especificado.', 1;
+        THROW 50001, 'ERROR: Ya existe una inscripciÛn con este ID para el socio especificado.', 1;
          
     END
 
@@ -983,7 +983,7 @@ BEGIN
 END;
 GO
 
--- SP para actualizar una inscripci√≥n de socio existente
+-- SP para actualizar una inscripciÛn de socio existente
 CREATE OR ALTER PROCEDURE ActualizarInscripcionSocio
     @ID_socio INT,
     @ID_inscripcion INT,
@@ -994,17 +994,17 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Verificar si la inscripci√≥n existe
+    -- Verificar si la inscripciÛn existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Socio WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        THROW 50001, 'ERROR: La inscripci√≥n de socio con el ID_socio e ID_inscripcion especificados no existe.', 1;
+        THROW 50001, 'ERROR: La inscripciÛn de socio con el ID_socio e ID_inscripcion especificados no existe.', 1;
          
     END
 
-    -- Validaciones para los par√°metros que se actualizan
+    -- Validaciones para los par·metros que se actualizan
     IF @fecha_inicio IS NOT NULL AND @fecha_inicio > GETDATE()
     BEGIN
-        THROW 50001, 'ERROR: La fecha de inicio de la inscripci√≥n no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripciÛn no es v·lida.', 1;
          
     END
 
@@ -1030,7 +1030,7 @@ BEGIN
 END;
 GO
 
--- SP para eliminar una inscripci√≥n de socio
+-- SP para eliminar una inscripciÛn de socio
 CREATE OR ALTER PROCEDURE EliminarInscripcionSocio
     @ID_socio INT,
     @ID_inscripcion INT
@@ -1038,10 +1038,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Verificar si la inscripci√≥n existe
+    -- Verificar si la inscripciÛn existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Socio WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        THROW 50001, 'ERROR: La inscripci√≥n de socio con el ID_socio e ID_inscripcion especificados no existe.', 1;
+        THROW 50001, 'ERROR: La inscripciÛn de socio con el ID_socio e ID_inscripcion especificados no existe.', 1;
          
     END
 
@@ -1067,7 +1067,7 @@ BEGIN
         FROM Actividades.Actividades_Deportivas;
     END
 
-    -- Validaciones b√°sicas
+    -- Validaciones b·sicas
 
     IF EXISTS (SELECT 1 FROM Actividades.Actividades_Deportivas WHERE Nombre = @Nombre)
     BEGIN
@@ -1076,7 +1076,7 @@ BEGIN
 
     IF @Nombre IS NULL OR LTRIM(RTRIM(@Nombre)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El nombre de la actividad deportiva no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nombre de la actividad deportiva no puede estar vacÌo.', 1;
          
     END
 
@@ -1114,10 +1114,10 @@ BEGIN
          
     END
 
-    -- Validaciones para los par√°metros que se actualizan
+    -- Validaciones para los par·metros que se actualizan
     IF @Nombre IS NOT NULL AND LTRIM(RTRIM(@Nombre)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El nombre de la actividad deportiva no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nombre de la actividad deportiva no puede estar vacÌo.', 1;
          
     END
 
@@ -1191,16 +1191,16 @@ BEGIN
 
 
     IF @Nombre IS NULL OR LTRIM(RTRIM(@Nombre)) = ''
-        THROW 50001, 'ERROR: El nombre de la actividad "otra" no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nombre de la actividad "otra" no puede estar vacÌo.', 1;
 
     IF @TipoDuracion IS NULL OR LTRIM(RTRIM(@TipoDuracion)) = ''
-        THROW 50001, 'ERROR: El tipo de duraci√≥n no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El tipo de duraciÛn no puede estar vacÌo.', 1;
 
     IF @TipoPersona IS NULL OR LTRIM(RTRIM(@TipoPersona)) = ''
-        THROW 50001, 'ERROR: El tipo de persona no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El tipo de persona no puede estar vacÌo.', 1;
 
     IF @Condicion IS NULL OR LTRIM(RTRIM(@Condicion)) = ''
-        THROW 50001, 'ERROR: La condici√≥n de acceso no puede estar vac√≠a.', 1;
+        THROW 50001, 'ERROR: La condiciÛn de acceso no puede estar vacÌa.', 1;
 
     IF @Costo IS NULL OR @Costo < 0
         THROW 50001, 'ERROR: El costo debe ser un valor positivo.', 1;
@@ -1211,7 +1211,7 @@ BEGIN
               AND TipoPersona = @TipoPersona
               AND Condicion = @Condicion
     )
-        THROW 50001, 'ERROR: Ya existe una tarifa para esta combinaci√≥n de actividad, duraci√≥n, edad y condici√≥n de socio.', 1;
+        THROW 50001, 'ERROR: Ya existe una tarifa para esta combinaciÛn de actividad, duraciÛn, edad y condiciÛn de socio.', 1;
 
     INSERT INTO Actividades.Actividades_Otras (
         ID_actividad, Nombre, TipoDuracion, TipoPersona, Condicion, costo
@@ -1242,10 +1242,10 @@ BEGIN
               AND TipoPersona = @TipoPersona
               AND Condicion = @Condicion
     )
-        THROW 50001, 'ERROR: La actividad especificada con esa combinaci√≥n no existe.', 1;
+        THROW 50001, 'ERROR: La actividad especificada con esa combinaciÛn no existe.', 1;
 
     IF @Nombre IS NOT NULL AND LTRIM(RTRIM(@Nombre)) = ''
-        THROW 50001, 'ERROR: El nombre no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nombre no puede estar vacÌo.', 1;
 
     IF @Costo IS NOT NULL AND @Costo < 0
         THROW 50001, 'ERROR: El costo debe ser un valor positivo.', 1;
@@ -1280,9 +1280,9 @@ BEGIN
               AND TipoPersona = @TipoPersona
               AND Condicion = @Condicion
     )
-        THROW 50001, 'ERROR: La actividad "otra" con esos par√°metros no existe.', 1;
+        THROW 50001, 'ERROR: La actividad "otra" con esos par·metros no existe.', 1;
 
-    -- Reemplaz√° esto si ten√©s tablas de dependencia reales
+    -- Reemplaz· esto si tenÈs tablas de dependencia reales
     IF EXISTS (SELECT 1 FROM Actividades.AcOtra_turnos WHERE ID_actividad = @ID_actividad)
         THROW 50001, 'ERROR: La actividad no se puede eliminar porque tiene turnos asociados.', 1;
 
@@ -1317,10 +1317,10 @@ BEGIN
         FROM Actividades.AcDep_turnos;
 
     END
-    -- Validaciones b√°sicas
+    -- Validaciones b·sicas
     IF @turno IS NULL OR LTRIM(RTRIM(@turno)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El turno no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El turno no puede estar vacÌo.', 1;
          
     END
 
@@ -1359,10 +1359,10 @@ BEGIN
          
     END
 
-    -- Validaciones para los par√°metros que se actualizan
+    -- Validaciones para los par·metros que se actualizan
     IF @turno IS NOT NULL AND LTRIM(RTRIM(@turno)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El turno no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El turno no puede estar vacÌo.', 1;
          
     END
 
@@ -1392,7 +1392,7 @@ BEGIN
     -- Verificar si hay inscripciones asociadas a este turno
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Deportiva WHERE ID_actividad = @ID_actividad AND ID_Turno = @ID_turno)
     BEGIN
-        THROW 50001, 'ERROR: No se puede eliminar el turno porque hay inscripciones asociadas a √©l. Elimine las inscripciones primero.', 1;
+        THROW 50001, 'ERROR: No se puede eliminar el turno porque hay inscripciones asociadas a Èl. Elimine las inscripciones primero.', 1;
          
     END
 
@@ -1414,10 +1414,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Validaciones b√°sicas
+    -- Validaciones b·sicas
     IF @turno IS NULL OR LTRIM(RTRIM(@turno)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El turno no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El turno no puede estar vacÌo.', 1;
          
     END
 
@@ -1456,10 +1456,10 @@ BEGIN
          
     END
 
-    -- Validaciones para los par√°metros que se actualizan
+    -- Validaciones para los par·metros que se actualizan
     IF @turno IS NOT NULL AND LTRIM(RTRIM(@turno)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El turno no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El turno no puede estar vacÌo.', 1;
          
     END
 
@@ -1489,7 +1489,7 @@ BEGIN
     -- Verificar si hay inscripciones asociadas a este turno
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Otra WHERE ID_actividad = @ID_actividad AND ID_Turno = @ID_turno)
     BEGIN
-        THROW 50001, 'ERROR: No se puede eliminar el turno porque hay inscripciones asociadas a √©l. Elimine las inscripciones primero.', 1;
+        THROW 50001, 'ERROR: No se puede eliminar el turno porque hay inscripciones asociadas a Èl. Elimine las inscripciones primero.', 1;
          
     END
 
@@ -1502,7 +1502,7 @@ GO
 -- Stored Procedures para la tabla Actividades.Inscripcion_Deportiva
 -- ==========================================================
 
--- SP para insertar una nueva inscripci√≥n deportiva
+-- SP para insertar una nueva inscripciÛn deportiva
 CREATE OR ALTER PROCEDURE InsertarInscripcionDeportiva
     @ID_socio INT,
     @ID_inscripcion INT = NULL,
@@ -1520,10 +1520,10 @@ BEGIN
         FROM Actividades.Inscripcion_Deportiva;
 
     END
-    -- Validaciones b√°sicas
+    -- Validaciones b·sicas
     IF @fecha_inicio IS NULL OR @fecha_inicio > GETDATE()
     BEGIN
-        THROW 50001, 'ERROR: La fecha de inicio de la inscripci√≥n no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripciÛn no es v·lida.', 1;
          
     END
 
@@ -1542,14 +1542,14 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.AcDep_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_Turno)
     BEGIN
-        THROW 50001, 'ERROR: La combinaci√≥n de ID_actividad e ID_Turno no existe en Actividades.AcDep_turnos.', 1;
+        THROW 50001, 'ERROR: La combinaciÛn de ID_actividad e ID_Turno no existe en Actividades.AcDep_turnos.', 1;
          
     END
 
-    -- Verificar si la inscripci√≥n ya existe para este socio
+    -- Verificar si la inscripciÛn ya existe para este socio
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Deportiva WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        THROW 50001, 'ERROR: Ya existe una inscripci√≥n con este ID para el socio especificado.', 1;
+        THROW 50001, 'ERROR: Ya existe una inscripciÛn con este ID para el socio especificado.', 1;
          
     END
 
@@ -1562,7 +1562,7 @@ BEGIN
 END;
 GO
 
--- SP para actualizar una inscripci√≥n deportiva existente
+-- SP para actualizar una inscripciÛn deportiva existente
 CREATE OR ALTER PROCEDURE ActualizarInscripcionDeportiva
     @ID_socio INT,
     @ID_inscripcion INT,
@@ -1574,17 +1574,17 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Verificar si la inscripci√≥n existe
+    -- Verificar si la inscripciÛn existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Deportiva WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        THROW 50001, 'ERROR: La inscripci√≥n deportiva con el ID_socio e ID_inscripcion especificados no existe.', 1;
+        THROW 50001, 'ERROR: La inscripciÛn deportiva con el ID_socio e ID_inscripcion especificados no existe.', 1;
          
     END
 
-    -- Validaciones para los par√°metros que se actualizan
+    -- Validaciones para los par·metros que se actualizan
     IF @fecha_inicio IS NOT NULL AND @fecha_inicio > GETDATE()
     BEGIN
-        THROW 50001, 'ERROR: La fecha de inicio de la inscripci√≥n no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripciÛn no es v·lida.', 1;
          
     END
 
@@ -1596,7 +1596,7 @@ BEGIN
 
     IF @ID_actividad IS NOT NULL AND @ID_Turno IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Actividades.AcDep_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_Turno)
     BEGIN
-        THROW 50001, 'ERROR: La combinaci√≥n de ID_actividad e ID_Turno no existe en Actividades.AcDep_turnos.', 1;
+        THROW 50001, 'ERROR: La combinaciÛn de ID_actividad e ID_Turno no existe en Actividades.AcDep_turnos.', 1;
          
     END
     ELSE IF @ID_actividad IS NOT NULL AND @ID_Turno IS NULL AND NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Deportivas WHERE ID_actividad = @ID_actividad)
@@ -1616,7 +1616,7 @@ BEGIN
 END;
 GO
 
--- SP para eliminar una inscripci√≥n deportiva
+-- SP para eliminar una inscripciÛn deportiva
 CREATE OR ALTER PROCEDURE EliminarInscripcionDeportiva
     @ID_socio INT,
     @ID_inscripcion INT
@@ -1624,10 +1624,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Verificar si la inscripci√≥n existe
+    -- Verificar si la inscripciÛn existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Deportiva WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        THROW 50001, 'ERROR: La inscripci√≥n deportiva con el ID_socio e ID_inscripcion especificados no existe.', 1;
+        THROW 50001, 'ERROR: La inscripciÛn deportiva con el ID_socio e ID_inscripcion especificados no existe.', 1;
          
     END
 
@@ -1640,7 +1640,7 @@ GO
 -- Stored Procedures para la tabla Actividades.Inscripcion_Otra
 -- ======================================================
 
--- SP para insertar una nueva inscripci√≥n de actividad "otra"
+-- SP para insertar una nueva inscripciÛn de actividad "otra"
 CREATE OR ALTER PROCEDURE InsertarInscripcionOtra
     @ID_socio INT,
     @ID_inscripcion INT,
@@ -1652,10 +1652,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Validaciones b√°sicas
+    -- Validaciones b·sicas
     IF @fecha_inicio IS NULL OR @fecha_inicio > GETDATE()
     BEGIN
-        THROW 50001, 'ERROR: La fecha de inicio de la inscripci√≥n no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripciÛn no es v·lida.', 1;
          
     END
 
@@ -1674,14 +1674,14 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Actividades.AcOtra_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_Turno)
     BEGIN
-        THROW 50001, 'ERROR: La combinaci√≥n de ID_actividad e ID_Turno no existe en Actividades.AcOtra_turnos.', 1;
+        THROW 50001, 'ERROR: La combinaciÛn de ID_actividad e ID_Turno no existe en Actividades.AcOtra_turnos.', 1;
          
     END
 
-    -- Verificar si la inscripci√≥n ya existe para este socio
+    -- Verificar si la inscripciÛn ya existe para este socio
     IF EXISTS (SELECT 1 FROM Actividades.Inscripcion_Otra WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        THROW 50001, 'ERROR: Ya existe una inscripci√≥n con este ID para el socio especificado.', 1;
+        THROW 50001, 'ERROR: Ya existe una inscripciÛn con este ID para el socio especificado.', 1;
          
     END
 
@@ -1694,7 +1694,7 @@ BEGIN
 END;
 GO
 
--- SP para actualizar una inscripci√≥n de actividad "otra" existente
+-- SP para actualizar una inscripciÛn de actividad "otra" existente
 CREATE OR ALTER PROCEDURE ActualizarInscripcionOtra
     @ID_socio INT,
     @ID_inscripcion INT,
@@ -1706,17 +1706,17 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Verificar si la inscripci√≥n existe
+    -- Verificar si la inscripciÛn existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Otra WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        THROW 50001, 'ERROR: La inscripci√≥n de actividad "otra" con el ID_socio e ID_inscripcion especificados no existe.', 1;
+        THROW 50001, 'ERROR: La inscripciÛn de actividad "otra" con el ID_socio e ID_inscripcion especificados no existe.', 1;
          
     END
 
-    -- Validaciones para los par√°metros que se actualizan
+    -- Validaciones para los par·metros que se actualizan
     IF @fecha_inicio IS NOT NULL AND @fecha_inicio > GETDATE()
     BEGIN
-        THROW 50001, 'ERROR: La fecha de inicio de la inscripci√≥n no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La fecha de inicio de la inscripciÛn no es v·lida.', 1;
          
     END
 
@@ -1728,7 +1728,7 @@ BEGIN
 
     IF @ID_actividad IS NOT NULL AND @ID_Turno IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Actividades.AcOtra_turnos WHERE ID_actividad = @ID_actividad AND ID_turno = @ID_Turno)
     BEGIN
-        THROW 50001, 'ERROR: La combinaci√≥n de ID_actividad e ID_Turno no existe en Actividades.AcOtra_turnos.', 1;
+        THROW 50001, 'ERROR: La combinaciÛn de ID_actividad e ID_Turno no existe en Actividades.AcOtra_turnos.', 1;
          
     END
     ELSE IF @ID_actividad IS NOT NULL AND @ID_Turno IS NULL AND NOT EXISTS (SELECT 1 FROM Actividades.Actividades_Otras WHERE ID_actividad = @ID_actividad)
@@ -1749,7 +1749,7 @@ BEGIN
 END;
 GO
 
--- SP para eliminar una inscripci√≥n de actividad "otra"
+-- SP para eliminar una inscripciÛn de actividad "otra"
 CREATE OR ALTER PROCEDURE EliminarInscripcionOtra
     @ID_socio INT,
     @ID_inscripcion INT
@@ -1757,10 +1757,10 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- Verificar si la inscripci√≥n existe
+    -- Verificar si la inscripciÛn existe
     IF NOT EXISTS (SELECT 1 FROM Actividades.Inscripcion_Otra WHERE ID_socio = @ID_socio AND ID_inscripcion = @ID_inscripcion)
     BEGIN
-        THROW 50001, 'ERROR: La inscripci√≥n de actividad "otra" con el ID_socio e ID_inscripcion especificados no existe.', 1;
+        THROW 50001, 'ERROR: La inscripciÛn de actividad "otra" con el ID_socio e ID_inscripcion especificados no existe.', 1;
          
     END
 
@@ -1784,7 +1784,7 @@ BEGIN
 
     IF @nombre IS NULL OR LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El nombre del medio de pago no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nombre del medio de pago no puede estar vacÌo.', 1;
          
     END
 
@@ -1815,7 +1815,7 @@ BEGIN
 
     IF @nombre IS NOT NULL AND LTRIM(RTRIM(@nombre)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El nombre del medio de pago no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El nombre del medio de pago no puede estar vacÌo.', 1;
          
     END
 
@@ -1841,7 +1841,7 @@ BEGIN
     -- Verificar si hay cuentas asociadas a este medio de pago
     IF EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_banco = @ID_banco)
     BEGIN
-        THROW 50001, 'ERROR: No se puede eliminar el medio de pago porque hay cuentas asociadas a √©l. Desasocie las cuentas primero.', 1;
+        THROW 50001, 'ERROR: No se puede eliminar el medio de pago porque hay cuentas asociadas a Èl. Desasocie las cuentas primero.', 1;
          
     END
 
@@ -1884,7 +1884,7 @@ BEGIN
 
     IF @tipo NOT IN ('credito', 'debito','')
     BEGIN
-        THROW 50001, 'ERROR: El tipo de cuenta no es v√°lido. Debe ser "credito" o "debito".', 1;
+        THROW 50001, 'ERROR: El tipo de cuenta no es v·lido. Debe ser "credito" o "debito".', 1;
     END
 	
 	IF @tipo IS NULL OR LTRIM(RTRIM(@tipo)) = ''
@@ -1940,13 +1940,13 @@ BEGIN
 
     IF @credenciales IS NOT NULL AND LTRIM(RTRIM(@credenciales)) = ''
     BEGIN
-        THROW 50001, 'ERROR: Las credenciales no pueden estar vac√≠as.', 1;
+        THROW 50001, 'ERROR: Las credenciales no pueden estar vacÌas.', 1;
          
     END
 
     IF @tipo IS NOT NULL AND @tipo NOT IN ('credito', 'debito')
     BEGIN
-        THROW 50001, 'ERROR: El tipo de cuenta no es v√°lido. Debe ser "credito" o "debito".', 1;
+        THROW 50001, 'ERROR: El tipo de cuenta no es v·lido. Debe ser "credito" o "debito".', 1;
          
     END
 
@@ -2027,25 +2027,25 @@ BEGIN
 
     IF @Tipo NOT IN ('socio', 'deporte', 'otra')
     BEGIN
-        THROW 50001, 'ERROR: El tipo de cuota no es v√°lido. Debe ser "socio", "deporte" o "otra".', 1;
+        THROW 50001, 'ERROR: El tipo de cuota no es v·lido. Debe ser "socio", "deporte" o "otra".', 1;
          
     END
 
     IF @fecha IS NULL OR @fecha > GETDATE()
     BEGIN
-        THROW 50001, 'ERROR: La fecha de la cuota no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La fecha de la cuota no es v·lida.', 1;
          
     END
 
     IF @Vencimiento1 IS NULL OR @Vencimiento1 < @fecha
     BEGIN
-        THROW 50001, 'ERROR: La primera fecha de vencimiento no es v√°lida (no puede ser anterior a la fecha de la cuota).', 1;
+        THROW 50001, 'ERROR: La primera fecha de vencimiento no es v·lida (no puede ser anterior a la fecha de la cuota).', 1;
          
     END
 
     IF @Vencimiento2 IS NULL OR @Vencimiento2 < @Vencimiento1
     BEGIN
-        THROW 50001, 'ERROR: La segunda fecha de vencimiento no es v√°lida (no puede ser anterior a la primera).', 1;
+        THROW 50001, 'ERROR: La segunda fecha de vencimiento no es v·lida (no puede ser anterior a la primera).', 1;
          
     END
 
@@ -2069,7 +2069,7 @@ BEGIN
 
     IF @Estado NOT IN ('impago', 'vencido1', 'vencido2', 'pago')
     BEGIN
-        THROW 50001, 'ERROR: El estado de la cuota no es v√°lido. Debe ser "impago", "vencido1", "vencido2" o "pago".', 1;
+        THROW 50001, 'ERROR: El estado de la cuota no es v·lido. Debe ser "impago", "vencido1", "vencido2" o "pago".', 1;
          
     END
 
@@ -2122,25 +2122,25 @@ BEGIN
 
     IF @Tipo IS NOT NULL AND @Tipo NOT IN ('socio', 'deporte', 'otra')
     BEGIN
-        THROW 50001, 'ERROR: El tipo de cuota no es v√°lido. Debe ser "socio", "deporte" o "otra".', 1;
+        THROW 50001, 'ERROR: El tipo de cuota no es v·lido. Debe ser "socio", "deporte" o "otra".', 1;
          
     END
 
     IF @fecha IS NOT NULL AND @fecha > GETDATE()
     BEGIN
-        THROW 50001, 'ERROR: La fecha de la cuota no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La fecha de la cuota no es v·lida.', 1;
          
     END
 
     IF @Vencimiento1 IS NOT NULL AND @fecha IS NOT NULL AND @Vencimiento1 < @fecha
     BEGIN
-        THROW 50001, 'ERROR: La primera fecha de vencimiento no es v√°lida (no puede ser anterior a la fecha de la cuota).', 1;
+        THROW 50001, 'ERROR: La primera fecha de vencimiento no es v·lida (no puede ser anterior a la fecha de la cuota).', 1;
          
     END
 
     IF @Vencimiento2 IS NOT NULL AND @Vencimiento1 IS NOT NULL AND @Vencimiento2 < @Vencimiento1
     BEGIN
-        THROW 50001, 'ERROR: La segunda fecha de vencimiento no es v√°lida (no puede ser anterior a la primera).', 1;
+        THROW 50001, 'ERROR: La segunda fecha de vencimiento no es v·lida (no puede ser anterior a la primera).', 1;
          
     END
 
@@ -2164,7 +2164,7 @@ BEGIN
 
     IF @Estado IS NOT NULL AND @Estado NOT IN ('impago', 'vencido1', 'vencido2', 'pago')
     BEGIN
-        THROW 50001, 'ERROR: El estado de la cuota no es v√°lido. Debe ser "impago", "vencido1", "vencido2" o "pago".', 1;
+        THROW 50001, 'ERROR: El estado de la cuota no es v·lido. Debe ser "impago", "vencido1", "vencido2" o "pago".', 1;
          
     END
 
@@ -2233,19 +2233,19 @@ BEGIN
 
     IF @DNI IS NULL OR LTRIM(RTRIM(@DNI)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El DNI de la factura no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El DNI de la factura no puede estar vacÌo.', 1;
          
     END
 
     IF LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]')
     BEGIN
-        THROW 50001, 'ERROR: El DNI de la factura debe contener 8 d√≠gitos num√©ricos.', 1;
+        THROW 50001, 'ERROR: El DNI de la factura debe contener 8 dÌgitos numÈricos.', 1;
          
     END
 
     IF @CUIT IS NULL OR LTRIM(RTRIM(@CUIT)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El CUIT de la factura no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El CUIT de la factura no puede estar vacÌo.', 1;
          
     END
 	
@@ -2253,13 +2253,13 @@ BEGIN
 
 	IF @CUIT NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
 	BEGIN
-		THROW 50001, 'ERROR: El CUIT debe tener el formato XX-XXXXXXXX-X con d√≠gitos num√©ricos.', 1;
+		THROW 50001, 'ERROR: El CUIT debe tener el formato XX-XXXXXXXX-X con dÌgitos numÈricos.', 1;
 	END
 
 
     IF @FechaYHora IS NULL OR @FechaYHora > GETDATE()
     BEGIN
-        THROW 50001, 'ERROR: La Fecha y Hora de la factura no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La Fecha y Hora de la factura no es v·lida.', 1;
          
     END
 
@@ -2300,19 +2300,19 @@ BEGIN
 
     IF @DNI IS NOT NULL AND (LEN(@DNI) != 8 OR NOT (@DNI LIKE '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'))
     BEGIN
-        THROW 50001, 'ERROR: El DNI de la factura debe contener 8 d√≠gitos num√©ricos.', 1;
+        THROW 50001, 'ERROR: El DNI de la factura debe contener 8 dÌgitos numÈricos.', 1;
          
     END
 
     IF @CUIT IS NOT NULL AND (LEN(@CUIT) != 11 OR NOT (@CUIT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'))
     BEGIN
-        THROW 50001, 'ERROR: El CUIT de la factura debe contener 11 d√≠gitos num√©ricos con guiones (XX-XXXXXXXX-X).', 1;
+        THROW 50001, 'ERROR: El CUIT de la factura debe contener 11 dÌgitos numÈricos con guiones (XX-XXXXXXXX-X).', 1;
          
     END
 
     IF @FechaYHora IS NOT NULL AND @FechaYHora > GETDATE()
     BEGIN
-        THROW 50001, 'ERROR: La Fecha y Hora de la factura no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La Fecha y Hora de la factura no es v·lida.', 1;
          
     END
 
@@ -2398,7 +2398,7 @@ BEGIN
 
     IF @Tipo NOT IN ('socio', 'deporte', 'otra')
     BEGIN
-        THROW 50001, 'ERROR: El tipo de detalle no es v√°lido. Debe ser "socio", "deporte" o "otra".', 1;
+        THROW 50001, 'ERROR: El tipo de detalle no es v·lido. Debe ser "socio", "deporte" o "otra".', 1;
          
     END
 
@@ -2422,7 +2422,7 @@ BEGIN
 
     IF EXISTS (SELECT 1 FROM Finansas.detalle_factura WHERE ID_factura = @ID_factura AND ID_cuota = @ID_cuota)
     BEGIN
-        THROW 50001, 'ERROR: Ya existe un detalle de factura con esta combinaci√≥n de ID_factura e ID_cuota.', 1;
+        THROW 50001, 'ERROR: Ya existe un detalle de factura con esta combinaciÛn de ID_factura e ID_cuota.', 1;
          
     END
 
@@ -2450,13 +2450,13 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.detalle_factura WHERE ID_factura = @ID_factura AND ID_cuota = @ID_cuota)
     BEGIN
-        THROW 50001, 'ERROR: El detalle de factura con la combinaci√≥n de ID_factura e ID_cuota especificados no existe.', 1;
+        THROW 50001, 'ERROR: El detalle de factura con la combinaciÛn de ID_factura e ID_cuota especificados no existe.', 1;
          
     END
 
     IF @Tipo IS NOT NULL AND @Tipo NOT IN ('socio', 'deporte', 'otra')
     BEGIN
-        THROW 50001, 'ERROR: El tipo de detalle no es v√°lido. Debe ser "socio", "deporte" o "otra".', 1;
+        THROW 50001, 'ERROR: El tipo de detalle no es v·lido. Debe ser "socio", "deporte" o "otra".', 1;
          
     END
 
@@ -2500,7 +2500,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.detalle_factura WHERE ID_factura = @ID_factura AND ID_cuota = @ID_cuota)
     BEGIN
-        THROW 50001, 'ERROR: El detalle de factura con la combinaci√≥n de ID_factura e ID_cuota especificados no existe.', 1;
+        THROW 50001, 'ERROR: El detalle de factura con la combinaciÛn de ID_factura e ID_cuota especificados no existe.', 1;
          
     END
 
@@ -2539,7 +2539,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        THROW 50001, 'ERROR: La combinaci√≥n de ID_socio e ID_cuenta no existe.', 1;
+        THROW 50001, 'ERROR: La combinaciÛn de ID_socio e ID_cuenta no existe.', 1;
          
     END
 
@@ -2551,13 +2551,13 @@ BEGIN
 	
 	IF @Medio_Pago IS NULL OR LTRIM(RTRIM(@Medio_Pago)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El Medio de Pago del cobro no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El Medio de Pago del cobro no puede estar vacÌo.', 1;
          
     END
 	
 	IF @fecha IS NULL OR @fecha > GETDATE() 
     BEGIN
-        THROW 50001, 'ERROR: La fecha no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La fecha no es v·lida.', 1;
          
     END
 
@@ -2590,7 +2590,7 @@ BEGIN
 
     IF @Medio_Pago IS NOT NULL AND LTRIM(RTRIM(@Medio_Pago)) = ''
     BEGIN
-        THROW 50001, 'ERROR: El Medio de Pago no puede estar vac√≠o.', 1;
+        THROW 50001, 'ERROR: El Medio de Pago no puede estar vacÌo.', 1;
     END;
 
     IF @Fecha IS NOT NULL AND @Fecha > GETDATE()
@@ -2650,7 +2650,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        THROW 50001, 'ERROR: La combinaci√≥n de ID_socio e ID_cuenta no existe.', 1;
+        THROW 50001, 'ERROR: La combinaciÛn de ID_socio e ID_cuenta no existe.', 1;
          
     END
 
@@ -2662,7 +2662,7 @@ BEGIN
 
     IF EXISTS (SELECT 1 FROM Finansas.reembolso WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        THROW 50001, 'ERROR: Ya existe un reembolso con esta combinaci√≥n de ID_factura, ID_socio e ID_cuenta.', 1;
+        THROW 50001, 'ERROR: Ya existe un reembolso con esta combinaciÛn de ID_factura, ID_socio e ID_cuenta.', 1;
          
     END
 
@@ -2684,7 +2684,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.reembolso WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        THROW 50001, 'ERROR: El reembolso con la combinaci√≥n de ID_factura, ID_socio e ID_cuenta especificados no existe.', 1;
+        THROW 50001, 'ERROR: El reembolso con la combinaciÛn de ID_factura, ID_socio e ID_cuenta especificados no existe.', 1;
          
     END
 
@@ -2714,7 +2714,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.reembolso WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
-        THROW 50001, 'ERROR: El reembolso con la combinaci√≥n de ID_factura, ID_socio e ID_cuenta especificados no existe.', 1;
+        THROW 50001, 'ERROR: El reembolso con la combinaciÛn de ID_factura, ID_socio e ID_cuenta especificados no existe.', 1;
          
     END
 
@@ -2729,7 +2729,7 @@ GO
 
 -- Stored Procedures para la tabla Asistencia.dias
 
--- SP para insertar un nuevo d√≠a
+-- SP para insertar un nuevo dÌa
 CREATE OR ALTER PROCEDURE InsertarDia
     @fecha DATE,
     @climaMalo BIT
@@ -2737,9 +2737,9 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF @fecha IS NULL OR @fecha > GETDATE() -- O si permite fechas futuras, ajustar esta validaci√≥n
+    IF @fecha IS NULL OR @fecha > GETDATE() -- O si permite fechas futuras, ajustar esta validaciÛn
     BEGIN
-        THROW 50001, 'ERROR: La fecha no es v√°lida.', 1;
+        THROW 50001, 'ERROR: La fecha no es v·lida.', 1;
          
     END
 
@@ -2754,7 +2754,7 @@ BEGIN
 END;
 GO
 
--- SP para actualizar un d√≠a existente
+-- SP para actualizar un dÌa existente
 CREATE OR ALTER PROCEDURE ActualizarDia
     @fecha DATE,
     @climaMalo BIT = NULL
@@ -2773,7 +2773,7 @@ BEGIN
 END;
 GO
 
--- SP para eliminar un d√≠a
+-- SP para eliminar un dÌa
 CREATE OR ALTER PROCEDURE EliminarDia
     @fecha DATE
 AS
@@ -2786,10 +2786,10 @@ BEGIN
          
     END
 
-    -- Verificar si hay asistencias asociadas a este d√≠a
+    -- Verificar si hay asistencias asociadas a este dÌa
     IF EXISTS (SELECT 1 FROM Asistencia.asistencia WHERE Fecha = @fecha)
     BEGIN
-        THROW 50001, 'ERROR: No se puede eliminar el d√≠a porque hay registros de asistencia asociados. Elimine los registros de asistencia primero.', 1;
+        THROW 50001, 'ERROR: No se puede eliminar el dÌa porque hay registros de asistencia asociados. Elimine los registros de asistencia primero.', 1;
          
     END
 
@@ -2832,7 +2832,7 @@ BEGIN
 
     IF EXISTS (SELECT 1 FROM Asistencia.asistencia WHERE ID_socio = @ID_socio AND ID_actividad = @ID_actividad AND ID_turno = @ID_turno AND Fecha = @Fecha)
     BEGIN
-        THROW 50001, 'ERROR: Ya existe un registro de asistencia con esta combinaci√≥n para el socio en esta actividad, turno y fecha.', 1;
+        THROW 50001, 'ERROR: Ya existe un registro de asistencia con esta combinaciÛn para el socio en esta actividad, turno y fecha.', 1;
          
     END
 
@@ -2854,7 +2854,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Asistencia.asistencia WHERE ID_socio = @ID_socio AND ID_actividad = @ID_actividad AND ID_turno = @ID_turno AND Fecha = @Fecha)
     BEGIN
-        THROW 50001, 'ERROR: El registro de asistencia con la combinaci√≥n de ID_socio, ID_actividad, ID_turno y Fecha especificados no existe.', 1;
+        THROW 50001, 'ERROR: El registro de asistencia con la combinaciÛn de ID_socio, ID_actividad, ID_turno y Fecha especificados no existe.', 1;
          
     END
 
@@ -2876,7 +2876,7 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM Asistencia.asistencia WHERE ID_socio = @ID_socio AND ID_actividad = @ID_actividad AND ID_turno = @ID_turno AND Fecha = @Fecha)
     BEGIN
-        THROW 50001, 'ERROR: El registro de asistencia con la combinaci√≥n de ID_socio, ID_actividad, ID_turno y Fecha especificados no existe.', 1;
+        THROW 50001, 'ERROR: El registro de asistencia con la combinaciÛn de ID_socio, ID_actividad, ID_turno y Fecha especificados no existe.', 1;
          
     END
 
