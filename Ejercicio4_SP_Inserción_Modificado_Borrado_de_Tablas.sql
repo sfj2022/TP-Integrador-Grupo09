@@ -1815,15 +1815,20 @@ GO
 -- SP para insertar una nueva cuenta
 CREATE OR ALTER PROCEDURE InsertarCuenta
     @ID_socio INT,
-    @ID_cuenta INT,
-    @ID_banco INT,
-    @credenciales VARCHAR(50),
-    @tipo VARCHAR(20),
-    @SaldoAFavor DECIMAL(10,2),
+    @ID_cuenta INT= NULL,
+    @ID_banco INT= NULL,
+    @credenciales VARCHAR(50)= NULL,
+    @tipo VARCHAR(20)= NULL,
+    @SaldoAFavor DECIMAL(10,2)= NULL,
     @fechaPagoAutomatico DATE = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+
+	IF @ID_cuenta IS NULL OR LTRIM(RTRIM(@ID_cuenta)) = ''
+	BEGIN
+		 SELECT @ID_cuenta = ISNULL(MAX(ID_cuenta), 0) + 1 FROM Finansas.Cuenta;
+	END
 
     IF NOT EXISTS (SELECT 1 FROM Persona.Socio WHERE ID_socio = @ID_socio)
     BEGIN
@@ -1831,35 +1836,33 @@ BEGIN
          
     END
 
-    IF NOT EXISTS (SELECT 1 FROM Finansas.MedioDePago WHERE ID_banco = @ID_banco)
+    IF @ID_banco IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Finansas.MedioDePago WHERE ID_banco = @ID_banco)
     BEGIN
         THROW 50001, 'ERROR: El ID_banco especificado no existe.', 1;
          
     END
 
-    IF @credenciales IS NULL OR LTRIM(RTRIM(@credenciales)) = ''
-    BEGIN
-        THROW 50001, 'ERROR: Las credenciales no pueden estar vacías.', 1;
-         
-    END
-
-    IF @tipo NOT IN ('credito', 'debito')
+    IF @tipo NOT IN ('credito', 'debito','')
     BEGIN
         THROW 50001, 'ERROR: El tipo de cuenta no es válido. Debe ser "credito" o "debito".', 1;
-         
+    END
+	
+	IF @tipo IS NULL OR LTRIM(RTRIM(@tipo)) = ''
+    SET @tipo = 'debito';
+
+
+    IF @SaldoAFavor IS NULL
+		SET @SaldoAFavor = 0;
+	ELSE IF @SaldoAFavor < 0
+		THROW 50001, 'ERROR: El saldo a favor debe ser un valor no negativo.', 1;
+
+
+    IF EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_socio = @ID_socio)
+    BEGIN
+        THROW 50001, 'ERROR: Ya existe una cuenta para el socio especificado.', 1;
     END
 
-    IF @SaldoAFavor IS NULL OR @SaldoAFavor < 0
-    BEGIN
-        THROW 50001, 'ERROR: El saldo a favor debe ser un valor no negativo.', 1;
-         
-    END
 
-    IF EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
-    BEGIN
-        THROW 50001, 'ERROR: Ya existe una cuenta con este ID para el socio especificado.', 1;
-         
-    END
 
     INSERT INTO Finansas.Cuenta (
         ID_socio, ID_cuenta, ID_banco, credenciales, tipo, SaldoAFavor, fechaPagoAutomatico
@@ -2174,13 +2177,19 @@ GO
 CREATE OR ALTER PROCEDURE InsertarFactura
     @ID_factura INT,
     @DNI VARCHAR(8),
-    @CUIT VARCHAR(11),
+    @CUIT VARCHAR(13),
     @FechaYHora DATETIME,
     @costo DECIMAL(10,2),
     @estado BIT
 AS
 BEGIN
     SET NOCOUNT ON;
+	IF @ID_factura IS NULL OR LTRIM(RTRIM(@ID_factura)) = ''
+    BEGIN
+        SELECT @ID_factura = ISNULL(MAX(ID_factura), 0) + 1
+        FROM Finansas.factura;
+
+    END
 
     IF @DNI IS NULL OR LTRIM(RTRIM(@DNI)) = ''
     BEGIN
@@ -2199,12 +2208,14 @@ BEGIN
         THROW 50001, 'ERROR: El CUIT de la factura no puede estar vacío.', 1;
          
     END
+	
 
-    IF LEN(@CUIT) != 11 OR NOT (@CUIT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]')
-    BEGIN
-        THROW 50001, 'ERROR: El CUIT de la factura debe contener 11 dígitos numéricos con guiones (XX-XXXXXXXX-X).', 1;
-         
-    END
+
+	IF @CUIT NOT LIKE '[0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-[0-9]'
+	BEGIN
+		THROW 50001, 'ERROR: El CUIT debe tener el formato XX-XXXXXXXX-X con dígitos numéricos.', 1;
+	END
+
 
     IF @FechaYHora IS NULL OR @FechaYHora > GETDATE()
     BEGIN
@@ -2233,7 +2244,7 @@ GO
 CREATE OR ALTER PROCEDURE ActualizarFactura
     @ID_factura INT,
     @DNI VARCHAR(8) = NULL,
-    @CUIT VARCHAR(11) = NULL,
+    @CUIT VARCHAR(13) = NULL,
     @FechaYHora DATETIME = NULL,
     @costo DECIMAL(10,2) = NULL,
     @estado BIT = NULL
@@ -2462,20 +2473,29 @@ GO
 
 -- SP para insertar un nuevo cobro
 CREATE OR ALTER PROCEDURE InsertarCobro
+	@ID_Cobro BIGINT,
     @ID_factura INT,
     @ID_socio INT,
     @ID_cuenta INT,
     @Costo DECIMAL(10,2),
-    @Estado BIT
+    @Estado BIT,
+	@fecha date,
+	@Medio_Pago varchar(20)
 AS
 BEGIN
     SET NOCOUNT ON;
+	IF EXISTS (SELECT 1 FROM Finansas.cobro WHERE ID_Cobro = @ID_Cobro)
+    BEGIN
+        THROW 50001, 'ERROR: El ID_Cobro especificado ya existe.', 1;
+         
+    END
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.factura WHERE ID_factura = @ID_factura)
     BEGIN
         THROW 50001, 'ERROR: El ID_factura especificado no existe.', 1;
          
     END
+
 
     IF NOT EXISTS (SELECT 1 FROM Finansas.Cuenta WHERE ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
     BEGIN
@@ -2488,68 +2508,85 @@ BEGIN
         THROW 50001, 'ERROR: El costo del cobro debe ser un valor no negativo.', 1;
          
     END
-
-    IF EXISTS (SELECT 1 FROM Finansas.cobro WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
+	
+	IF @Medio_Pago IS NULL OR LTRIM(RTRIM(@Medio_Pago)) = ''
     BEGIN
-        THROW 50001, 'ERROR: Ya existe un cobro con esta combinación de ID_factura, ID_socio e ID_cuenta.', 1;
+        THROW 50001, 'ERROR: El Medio de Pago del cobro no puede estar vacío.', 1;
+         
+    END
+	
+	IF @fecha IS NULL OR @fecha > GETDATE() 
+    BEGIN
+        THROW 50001, 'ERROR: La fecha no es válida.', 1;
          
     END
 
-    INSERT INTO Finansas.cobro (ID_factura, ID_socio, ID_cuenta, Costo, Estado)
-    VALUES (@ID_factura, @ID_socio, @ID_cuenta, @Costo, @Estado);
+INSERT INTO Finansas.cobro (ID_Cobro, ID_factura, ID_socio, ID_cuenta, Costo, Estado, fecha, Medio_Pago)
+VALUES (@ID_Cobro, @ID_factura, @ID_socio, @ID_cuenta, @Costo, @Estado, @fecha, @Medio_Pago);
+
 END;
 GO
 
 -- SP para actualizar un cobro existente
 CREATE OR ALTER PROCEDURE ActualizarCobro
-    @ID_factura INT,
-    @ID_socio INT,
-    @ID_cuenta INT,
+    @ID_Cobro BIGINT,
     @Costo DECIMAL(10,2) = NULL,
-    @Estado BIT = NULL
+    @Estado BIT = NULL,
+    @Fecha DATE = NULL,
+    @Medio_Pago VARCHAR(20) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF NOT EXISTS (SELECT 1 FROM Finansas.cobro WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
+    IF NOT EXISTS (SELECT 1 FROM Finansas.cobro WHERE ID_Cobro = @ID_Cobro)
     BEGIN
-        THROW 50001, 'ERROR: El cobro con la combinación de ID_factura, ID_socio e ID_cuenta especificados no existe.', 1;
-         
-    END
+        THROW 50001, 'ERROR: El cobro con el ID_Cobro especificado no existe.', 1;
+    END;
 
     IF @Costo IS NOT NULL AND @Costo < 0
     BEGIN
         THROW 50001, 'ERROR: El costo del cobro debe ser un valor no negativo.', 1;
-         
-    END
+    END;
+
+    IF @Medio_Pago IS NOT NULL AND LTRIM(RTRIM(@Medio_Pago)) = ''
+    BEGIN
+        THROW 50001, 'ERROR: El Medio de Pago no puede estar vacío.', 1;
+    END;
+
+    IF @Fecha IS NOT NULL AND @Fecha > GETDATE()
+    BEGIN
+        THROW 50001, 'ERROR: La fecha no puede ser futura.', 1;
+    END;
 
     UPDATE Finansas.cobro
     SET
         Costo = ISNULL(@Costo, Costo),
-        Estado = ISNULL(@Estado, Estado)
+        Estado = ISNULL(@Estado, Estado),
+        fecha = ISNULL(@Fecha, fecha),
+        Medio_Pago = ISNULL(@Medio_Pago, Medio_Pago)
     WHERE
-        ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta;
+        ID_Cobro = @ID_Cobro;
 END;
+
+
 GO
 
 -- SP para eliminar un cobro
 CREATE OR ALTER PROCEDURE EliminarCobro
-    @ID_factura INT,
-    @ID_socio INT,
-    @ID_cuenta INT
+    @ID_Cobro BIGINT
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    IF NOT EXISTS (SELECT 1 FROM Finansas.cobro WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta)
+    IF NOT EXISTS (SELECT 1 FROM Finansas.cobro WHERE ID_Cobro = @ID_Cobro)
     BEGIN
-        THROW 50001, 'ERROR: El cobro con la combinación de ID_factura, ID_socio e ID_cuenta especificados no existe.', 1;
-         
-    END
+        THROW 50001, 'ERROR: El cobro con el ID_Cobro especificado no existe.', 1;
+    END;
 
     DELETE FROM Finansas.cobro
-    WHERE ID_factura = @ID_factura AND ID_socio = @ID_socio AND ID_cuenta = @ID_cuenta;
+    WHERE ID_Cobro = @ID_Cobro;
 END;
+
 GO
 
 -- Stored Procedures para la tabla Finansas.reembolso

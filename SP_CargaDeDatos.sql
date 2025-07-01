@@ -346,24 +346,87 @@ WHERE nro_fila = @fila;
 END
 
 
---select * from Persona.Socio where ID_socio = 4148
-
-
-
-
+--select * from Persona.Socio where ID_socio = 4144
 
 GO
 EXEC ProcesarHoja2 'C:\data\Datos socios.xlsx';
-GO
+
+
+
+
 --SP que importa los datos de la tercer hoja "pago cuotas" 
 CREATE OR ALTER PROCEDURE ProcesarHoja3 (
     @RutaArchivo VARCHAR(255))
 AS
 BEGIN
-DECLARE @NombreHoja VARCHAR(20)='pago cuotas';
+	SET NOCOUNT ON;
+	SET DATEFORMAT DMY; -- para que no de error el formato de la fecha
 
+	DECLARE @NombreHoja VARCHAR(20)='pago cuotas';
+	EXEC ImportarExcel @RutaArchivo, @NombreHoja;
+
+	DECLARE
+@ID_Pago BIGINT,
+@ID_Socio VARCHAR(30),
+@ID_Factura INT,
+@valor int,
+@Medio_Pago VARCHAR(15),
+@Fecha DATE,
+@fila INT = 1,
+@total INT;
+
+DECLARE --para generar la factura y cuenta
+@DNI INT,
+@CUIT CHAR(13),
+@ID_cuenta INT;
+
+SELECT @total = COUNT(*) FROM ##Excel_Hoja;
+SELECT *, ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS nro_fila
+INTO #ExcelNumerado
+FROM ##Excel_Hoja;
+
+WHILE @fila <= @total
+ BEGIN
+	BEGIN TRY
+		SELECT
+		@ID_Pago = TRY_CAST(dbo.ConvertirNumeroATextoPlano([Id de pago]) AS BIGINT),
+		@ID_Socio = TRY_CAST(REPLACE([Responsable de pago], 'SN-', '') AS INT),
+		@valor =TRY_CAST([Valor] AS INT),
+		@Medio_Pago = [Medio de pago],
+		@Fecha =TRY_CAST([fecha] AS DATE)
+		FROM #ExcelNumerado
+		WHERE nro_fila = @fila;
+
+		SET @DNI = (SELECT DNI FROM Persona.Socio WHERE ID_Socio = @ID_Socio);
+		SET @CUIT = '20-' + @DNI + '-3';
+		exec InsertarFactura @ID_factura=NULL, @DNI=@DNI, @CUIT = @CUIT, @FechaYHora = @Fecha,@costo = @valor, @estado = true;
+
+		IF NOT EXISTS ( SELECT 1 FROM Finansas.Cuenta WHERE ID_Socio = @ID_Socio)
+		BEGIN
+		    EXEC InsertarCuenta @ID_Socio = @ID_Socio, @ID_cuenta = NULL;
+		END
+
+		SELECT @ID_Cuenta = ID_Cuenta FROM Finansas.Cuenta WHERE ID_Socio = @ID_Socio;
+		
+		SELECT @ID_Factura = MAX(ID_factura) FROM Finansas.factura WHERE DNI = @DNI AND CUIT = @CUIT AND FechaYHora = @Fecha;
+
+
+		
+
+		Exec InsertarCobro @ID_factura=@ID_Factura ,@ID_Cobro=@ID_Pago, @ID_socio=@ID_Socio, @Costo=@valor, @Medio_Pago=@Medio_Pago, @fecha=@Fecha, @Estado = true, @ID_cuenta= @ID_Cuenta;
+
+		END TRY 
+        BEGIN CATCH
+           PRINT 'Error al procesar el pago ' + CAST(@fila AS VARCHAR) + ' (ID_Pago: ' + ISNULL(CAST(@ID_Pago AS VARCHAR), 'NULL') + ', ID_Usuario: ' + ISNULL(@ID_Socio, 'NULL') + '): ' + ERROR_MESSAGE();
+
+        END CATCH;
+
+	SET @fila += 1;
+	END
 
 END
+GO
+EXEC ProcesarHoja3 'C:\data\Datos socios.xlsx';
 
 GO
 --SP que importa los datos de la cuarta hoja "Tarifas" 
@@ -375,10 +438,21 @@ DECLARE @NombreHoja VARCHAR(20)='Tarifas';
 
 
 END
+/* --para ver el nombre de las columnas
+EXEC ImportarExcel 'C:\data\Datos socios.xlsx', 'presentismo_actividades';
+DECLARE @ColumnList NVARCHAR(MAX) = '';
+
+SELECT @ColumnList = STRING_AGG('[' + name + ']', ', ')
+FROM tempdb.sys.columns
+WHERE object_id = OBJECT_ID('tempdb..##Excel_Hoja');
+
+PRINT @ColumnList;
 
 GO
+*/
+GO
 --SP que importa los datos de la quinta hoja "presentismo_actividades" 
-CREATE OR ALTER PROCEDURE ProcesarHoja5 (
+CREATE OR ALTER PROCEDURE ProcesarHoja5 ( --[Nro de Socio], [Actividad], [fecha de asistencia], [Asistencia], [Profesor]
     @RutaArchivo VARCHAR(255))
 AS
 BEGIN
