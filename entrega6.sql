@@ -1,3 +1,5 @@
+USE SolNorteDB
+GO
 --reporte 1
 CREATE TABLE Finansas.Morosidad (
   ID_socio INT,
@@ -8,6 +10,7 @@ CREATE TABLE Finansas.Morosidad (
 );
 GO
 
+select * from Finansas.Morosidad
 
 INSERT INTO Finansas.Morosidad (ID_socio, ID_cuota, fecha, Estado)
 SELECT
@@ -19,7 +22,7 @@ FROM Finansas.Cuota
 WHERE Estado IN ('vencido1', 'vencido2');
 GO
 
-CREATE PROCEDURE MostrarMorososEnRango
+CREATE OR ALTER PROCEDURE MostrarMorososEnRango
   @FechaInicio DATE,
   @FechaFin DATE
 AS
@@ -42,10 +45,11 @@ BEGIN
     s.nombre,
     s.apellido,
     FORMAT(m.fecha, 'MMMM yyyy', 'es-AR')
-  HAVING COUNT(*) > 2
+  HAVING COUNT(*) > 1
   ORDER BY [Ranking de morosidad];
 END;
 GO
+
 
 
 
@@ -200,8 +204,10 @@ GO
 
 
 
-
-
+EXEC MostrarMorososEnRango @FechaInicio = '1900-01-01', @FechaFin = '2025-12-12';
+exec IngresoMensualPorActividad
+exec InasistenciasPorMembresia
+exec SociosConInasistencias
 
 
 

@@ -277,6 +277,7 @@ WHERE nro_fila = @fila;
 		
 
 		EXEC InsertarSocio @ID_socio = @ID_socio, @DNI = @DNI, @Nombre = @nombre, @Apellido = @apellido, @Email = @Email, @FechaNacimiento = @FNac, @domicilio = @domicilio, @obra_social = @NombObraSocial, @numObraSocial = @NroSocioObraSocial, @telObraSocial = '-', @estado = @estado, @usuario = @usuario, @contrasenia = @contrasenia, @caducidad_contrasenia = @caducidad_contrasenia;
+
 		INSERT INTO Persona.responsabilidad (ID_responsable, ID_menor)
 		VALUES (@ID_socio_responsable, @ID_socio);
 			
